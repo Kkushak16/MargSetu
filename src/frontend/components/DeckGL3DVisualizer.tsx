@@ -76,7 +76,7 @@ export const DeckGL3DVisualizer: React.FC<DeckGL3DProps> = ({ segments, onFlyThr
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        justify: 'center',
+        justifyContent: 'center',
         alignItems: 'center',
         padding: '24px',
         transform: `perspective(800px) rotateX(${cameraPitch}deg) rotateZ(${cameraBearing}deg) scale(${cameraZoom / 10})`,

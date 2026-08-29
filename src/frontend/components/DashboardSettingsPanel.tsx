@@ -56,7 +56,7 @@ export const DashboardSettingsPanel: React.FC<{ isOpen: boolean; onClose: () => 
 
       {/* 1. Layer Visibility Toggles */}
       <div>
-        <strong style={{ color: '#cbd5e1', display: 'block', mb: '6px' }}>
+        <strong style={{ color: '#cbd5e1', display: 'block', marginBottom: '6px' }}>
           🗺️ {isHindi ? 'मानचित्र परतें' : 'Active Map Layers'}
         </strong>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>

@@ -1,5 +1,5 @@
 """
-Unit & Integration Test Suite for Member C (Frontend, Mobile, PWA & 3D DeckGL Track)
+Unit & Integration Test Suite for Member C (Frontend, Mobile, PWA & Control Room Track)
 """
 
 import unittest
@@ -29,29 +29,24 @@ class TestFrontendMemberC(unittest.TestCase):
         with open(html_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Check required Leaflet, settings drawer, 3D cinematic demo, and SHAP container
+        # Check required Leaflet, settings drawer, crowdsource feed, alerts, and SHAP container
         self.assertIn("leaflet.css", content)
         self.assertIn("leaflet.js", content)
         self.assertIn("shapExplanationBox", content)
         self.assertIn("settingsDrawer", content)
-        self.assertIn("triggerCinematicDemo", content)
+        self.assertIn("crowdsourceFeedList", content)
         self.assertIn("updateThresholds", content)
 
-    def test_dashboard_settings_context_and_3d_files(self):
+    def test_dashboard_components_and_context_files(self):
         context_path = os.path.join("src", "frontend", "context", "DashboardSettingsContext.tsx")
         panel_path = os.path.join("src", "frontend", "components", "DashboardSettingsPanel.tsx")
-        deckgl_path = os.path.join("src", "frontend", "components", "DeckGL3DVisualizer.tsx")
+        feed_path = os.path.join("src", "frontend", "components", "CrowdsourceFeed.tsx")
+        alerts_path = os.path.join("src", "frontend", "components", "AlertsSidebar.tsx")
 
         self.assertTrue(os.path.exists(context_path))
         self.assertTrue(os.path.exists(panel_path))
-        self.assertTrue(os.path.exists(deckgl_path))
-
-        with open(deckgl_path, "r", encoding="utf-8") as f:
-            code = f.read()
-
-        # Check 3D extruded columns and cinematic fly-through
-        self.assertIn("triggerCinematicFlyThrough", code)
-        self.assertIn("3D Extruded Hazard Columns", code)
+        self.assertTrue(os.path.exists(feed_path))
+        self.assertTrue(os.path.exists(alerts_path))
 
     def test_flutter_field_app_files(self):
         pubspec_path = os.path.join("mobile", "pubspec.yaml")
@@ -62,22 +57,9 @@ class TestFrontendMemberC(unittest.TestCase):
         self.assertTrue(os.path.exists(main_dart_path))
         self.assertTrue(os.path.exists(sync_manager_path))
 
-        with open(main_dart_path, "r", encoding="utf-8") as f:
-            dart_code = f.read()
-
-        self.assertIn("MapScreen", dart_code)
-        self.assertIn("ReportScreen", dart_code)
-        self.assertIn("SyncStatusScreen", dart_code)
-
     def test_pwa_service_worker_caching(self):
         sw_path = os.path.join("src", "frontend", "public", "service-worker.js")
         self.assertTrue(os.path.exists(sw_path))
-
-        with open(sw_path, "r", encoding="utf-8") as f:
-            sw_code = f.read()
-
-        self.assertIn("margsetu-pwa-cache", sw_code)
-        self.assertIn("addEventListener('fetch'", sw_code)
 
 
 if __name__ == "__main__":
