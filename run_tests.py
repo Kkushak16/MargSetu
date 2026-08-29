@@ -1,15 +1,15 @@
 """
-Test Runner Script for MargSetu Member A ML Track
-Executes all unit and integration tests across DEM pipeline, Rainfall pipeline, XGBoost training, and FastAPI endpoints.
+Master Test Runner Script for MargSetu (Member A + Member B Tracks)
+Executes all unit and integration tests across ML pipelines, PostGIS schema, edge mutator, safe routing engine, OSRM exporter, and sync endpoints.
 """
 
 import sys
 import unittest
 
 if __name__ == "__main__":
-    print("=" * 70)
-    print("      RUNNING MARGSETU MEMBER A (ML TRACK) TEST SUITE")
-    print("=" * 70)
+    print("=" * 75)
+    print("     RUNNING MARGSETU INTEGRATED TEST SUITE (MEMBER A + MEMBER B)")
+    print("=" * 75)
 
     loader = unittest.TestLoader()
     suite = loader.discover("tests", pattern="test_*.py")
@@ -18,12 +18,12 @@ if __name__ == "__main__":
     result = runner.run(suite)
 
     if result.wasSuccessful():
-        print("\n" + "=" * 70)
-        print(" [SUCCESS] All Member A ML pipeline tests passed successfully!")
-        print("=" * 70)
+        print("\n" + "=" * 75)
+        print(" [SUCCESS] All Member A & Member B test suites passed successfully!")
+        print("=" * 75)
         sys.exit(0)
     else:
-        print("\n" + "=" * 70)
+        print("\n" + "=" * 75)
         print(" [FAILURE] Test suite encountered failures or errors.")
-        print("=" * 70)
+        print("=" * 75)
         sys.exit(1)
