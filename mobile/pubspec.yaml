@@ -1,0 +1,23 @@
+name: margsetu_field_app
+description: MargSetu Offline-First Field & Driver App (SIH26002)
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  connectivity_plus: ^5.0.2
+  http: ^1.1.0
+  uuid: ^4.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

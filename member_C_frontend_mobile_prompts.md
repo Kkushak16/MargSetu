@@ -2,6 +2,8 @@
 
 Constraint baked into every prompt below: keep bundle size and dependencies light — **Leaflet over Mapbox GL** unless you already have a free API key, and the field app must work with **zero network connectivity**.
 
+**Theme decision:** dark mode default, blue-teal accent, high-contrast control-room style (hazard colors pop harder on dark, reads as serious govt/infra tool). Light mode toggle kept as fallback. No gradients/glassmorphism — map is the hero, chrome stays flat.
+
 ---
 
 ### Prompt 1 — Admin GIS dashboard skeleton
@@ -21,7 +23,33 @@ Build a Next.js page using react-leaflet that:
    as a highlighted blue line on top of the hazard-colored segments.
 
 Use Tailwind for styling, keep it a single page for the hackathon demo,
-and add loading/error states for all API calls.
+and add loading/error states for all API calls. Theme: dark mode default
+(slate/near-black basemap, blue-teal UI accents, white text), with a
+light-mode toggle in the top bar.
+```
+
+---
+
+### Prompt 1b — Dashboard settings panel
+
+```
+Add a settings panel (collapsible sidebar or top-bar dropdown) to the
+dashboard from Prompt 1 with:
+1. Layer toggles: roads / vehicles / crowdsource reports / rainfall overlay
+   (checkboxes, persisted in localStorage).
+2. Time slider — scrub hazard_probability state across past 24h using
+   cached hourly snapshots from the API, for demo replay.
+3. Threshold sliders — let user adjust WARNING_SLOW (default 0.35) and
+   CRITICAL_AVOID (default 0.70) cutoffs live; re-color the map
+   immediately without a new API call (recompute color client-side from
+   the already-fetched hazard_probability values).
+4. Units toggle (km/miles) and language toggle (English/Hindi labels).
+5. Dark/light mode toggle.
+6. A small sync-status badge showing "Field app data last synced: [time]"
+   pulled from the backend's most recent /sync/up timestamp.
+
+Keep all settings in a single React context so any component can read
+them without prop drilling.
 ```
 
 ---
@@ -107,4 +135,43 @@ idempotent uploads via client-generated UUID. Explain briefly why RxDB's
 built-in replication protocol could replace your custom sync-manager
 code if you had more time — useful to mention to judges as a "future
 work" line.
+```
+
+---
+
+### Prompt 7 — 3D terrain + extruded hazard columns (deck.gl)
+
+```
+Add a 3D view mode to the dashboard using deck.gl (TerrainLayer +
+ColumnLayer) layered on top of MapLibre/Leaflet:
+1. TerrainLayer rendering the DEM for [district name] so valleys/slopes
+   are visible as real terrain, not a flat map.
+2. ColumnLayer: each road segment rendered as a vertical column at its
+   midpoint, height scaled by hazard_probability (0 = flat, max height
+   at prob=1.0), color still green/yellow/red. This is the main "wow"
+   visual — hazard spikes should be instantly readable from a distance.
+3. A 2D/3D toggle button that switches between this view and the flat
+   Prompt-1 map — keep 3D for demo/pitch, 2D as the practical daily-use
+   default.
+
+Keep it a separate optional component so it doesn't bloat the default
+page load — lazy-load deck.gl only when 3D mode is toggled on.
+```
+
+---
+
+### Prompt 8 — Animated trucks + fly-through camera (stretch, for pitch video)
+
+```
+Extend the 3D view from Prompt 7 with:
+1. deck.gl TripsLayer animating truck icons moving along their route
+   polyline in real time (interpolate position between GPS pings).
+2. A "fly-through" camera preset: on button click, animate the deck.gl
+   viewState from a top-down overview down into the demo valley over
+   ~4 seconds (ease-in-out), ending centered on the highest-hazard
+   segment. Intended purely for the pitch/demo video, not daily use —
+   gate it behind a "Cinematic Demo" button, not the default view.
+
+Keep this isolated in its own component so it can be skipped entirely
+if we run low on time before the deadline.
 ```
