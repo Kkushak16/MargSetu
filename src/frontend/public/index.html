@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MargSetu — GIS Logistics & Blockage Avoidance Platform</title>
+  <title>MargSetu — GIS Control Room & Dynamic Routing Platform</title>
   <meta name="description" content="SIH26002 Smart Logistics Platform for North Eastern Region highway blockage prediction and dynamic re-routing">
   
   <!-- Leaflet CSS -->
@@ -19,9 +19,11 @@
     .badge { padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; background: #0f172a; border: 1px solid #334155; color: #10b981; }
     .btn { background: #0284c7; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
     .btn-danger { background: #dc2626; }
+    .btn-secondary { background: #334155; }
+    .btn-accent { background: #7c3aed; }
     .main-layout { flex: 1; display: grid; grid-template-columns: 320px 1fr 340px; gap: 12px; padding: 12px; height: calc(100vh - 65px); }
     .panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
-    #map { height: 100%; border-radius: 10px; border: 1px solid #334155; background: #020617; }
+    #map { height: 100%; border-radius: 10px; border: 1px solid #334155; background: #020617; position: relative; }
     .form-group label { font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 4px; }
     .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     input, select { width: 100%; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: white; font-size: 0.85rem; }
@@ -30,18 +32,20 @@
     .shap-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 0.85rem; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; }
     .modal-box { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; width: 380px; }
+    .settings-drawer { position: fixed; top: 65px; right: 16px; width: 320px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; z-index: 8888; display: none; flex-direction: column; gap: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
   </style>
 </head>
 <body>
 
   <header>
     <div class="logo-box">
-      <h1>🏔️ MargSetu — Smart GIS Routing & Hazard Platform</h1>
+      <h1 id="titleHeader">🏔️ MargSetu — GIS Control Room Platform</h1>
       <span>SIH26002 • Ministry of Development of North Eastern Region (MDoNER)</span>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
+      <button class="btn btn-accent" onclick="triggerCinematicDemo()">🎬 Cinematic Pitch Demo</button>
+      <button class="btn btn-secondary" onclick="toggleSettingsDrawer()">⚙️ Settings</button>
       <div id="syncBadge" class="badge">✓ Offline Sync Ready</div>
-      <button class="btn" onclick="triggerManualSync()">Sync Now</button>
       <button class="btn btn-danger" onclick="openReportModal()">+ Report Hazard</button>
     </div>
   </header>
@@ -49,7 +53,7 @@
   <div class="main-layout">
     <!-- Left Panel: Controls & Telemetry -->
     <div class="panel">
-      <h3>🗺️ Find Safe Route</h3>
+      <h3 id="routeHeader">🗺️ Find Safe Route</h3>
       <form onsubmit="handleComputeRoute(event)">
         <div class="form-group">
           <label>Source (Lat, Lng)</label>
@@ -98,6 +102,48 @@
     </div>
   </div>
 
+  <!-- Settings Drawer (Prompt 1b) -->
+  <div id="settingsDrawer" class="settings-drawer">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px;">
+      <strong style="color: #38bdf8;">⚙️ Control Room Settings</strong>
+      <button onclick="toggleSettingsDrawer()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.2rem;">×</button>
+    </div>
+
+    <!-- Live Threshold Sliders -->
+    <div>
+      <label style="font-size:0.75rem; color:#f59e0b;">WARNING Threshold: <strong id="warnVal">35%</strong></label>
+      <input type="range" min="10" max="50" value="35" oninput="updateThresholds()" id="warnSlider" />
+    </div>
+    <div>
+      <label style="font-size:0.75rem; color:#ef4444;">CRITICAL Cutoff: <strong id="critVal">70%</strong></label>
+      <input type="range" min="50" max="90" value="70" oninput="updateThresholds()" id="critSlider" />
+    </div>
+
+    <!-- 24h Time Scrubbing -->
+    <div style="border-top: 1px solid #334155; padding-top: 8px;">
+      <label style="font-size:0.75rem; color:#38bdf8;">24h Demo Replay: <strong id="timeVal">Now (Live)</strong></label>
+      <input type="range" min="0" max="24" value="24" oninput="document.getElementById('timeVal').innerText = (24 - this.value) + 'h ago';" />
+    </div>
+
+    <!-- Language & Units -->
+    <div style="border-top: 1px solid #334155; padding-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <div>
+        <label>Language</label>
+        <select onchange="toggleLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="hi">हिंदी (Hindi)</option>
+        </select>
+      </div>
+      <div>
+        <label>Units</label>
+        <select>
+          <option value="km">Kilometers</option>
+          <option value="mi">Miles</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
   <!-- Offline Report Modal -->
   <div id="reportModal" class="modal-overlay">
     <div class="modal-box">
@@ -132,33 +178,71 @@
       attribution: '© OpenStreetMap contributors | MargSetu'
     }).addTo(map);
 
-    // Segment data with hazard scoring
     const segments = [
-      { id: "NH10_SEG_001", coords: [[26.7271, 88.3953], [26.8900, 88.4700]], hazard: 0.10, status: "SAFE", shap: ["Low recent rainfall accumulation", "Relatively flat terrain"] },
-      { id: "NH10_SEG_002", coords: [[26.8900, 88.4700], [27.0600, 88.4700]], hazard: 0.45, status: "WARNING_SLOW", shap: ["Moderate 7-day rainfall accumulation", "Water tends to collect in terrain depression"] },
-      { id: "NH10_SEG_003", coords: [[27.0600, 88.4700], [27.1764, 88.5341]], hazard: 0.82, status: "CRITICAL_AVOID", shap: ["Heavy rainfall accumulation over past 7 days (ari_7d)", "Extremely steep mountain incline (>30° slope)", "Proximity to high-shear geological fault line"] },
-      { id: "ALT_BYPASS_001", coords: [[26.8900, 88.4700], [27.3800, 88.5200]], hazard: 0.12, status: "SAFE", shap: ["Low rainfall accumulation", "Dense topsoil vegetation cover"] },
-      { id: "ALT_BYPASS_002", coords: [[27.3800, 88.5200], [27.2300, 88.5000]], hazard: 0.18, status: "SAFE", shap: ["Stable bedrock geology"] }
+      { id: "NH10_SEG_001", coords: [[26.7271, 88.3953], [26.8900, 88.4700]], hazard: 0.10, shap: ["Low recent rainfall accumulation", "Relatively flat terrain"] },
+      { id: "NH10_SEG_002", coords: [[26.8900, 88.4700], [27.0600, 88.4700]], hazard: 0.45, shap: ["Moderate 7-day rainfall accumulation", "Water tends to collect in terrain depression"] },
+      { id: "NH10_SEG_003", coords: [[27.0600, 88.4700], [27.1764, 88.5341]], hazard: 0.82, shap: ["Heavy rainfall accumulation over past 7 days (ari_7d)", "Extremely steep mountain incline (>30° slope)", "Proximity to high-shear geological fault line"] },
+      { id: "ALT_BYPASS_001", coords: [[26.8900, 88.4700], [27.3800, 88.5200]], hazard: 0.12, shap: ["Low rainfall accumulation", "Dense topsoil vegetation cover"] },
+      { id: "ALT_BYPASS_002", coords: [[27.3800, 88.5200], [27.2300, 88.5000]], hazard: 0.18, shap: ["Stable bedrock geology"] }
     ];
 
+    let polyLayers = [];
     let routeLayer = null;
 
-    // Draw hazard-colored polylines
-    segments.forEach(seg => {
-      const color = seg.hazard >= 0.70 ? '#ef4444' : (seg.hazard >= 0.35 ? '#f59e0b' : '#10b981');
-      const poly = L.polyline(seg.coords, { color: color, weight: 6, opacity: 0.85 }).addTo(map);
-      
-      poly.on('click', () => {
-        document.getElementById('shapExplanationBox').innerHTML = `
-          <h4 style="color: ${color}; margin-bottom: 6px;">${seg.id} (${(seg.hazard*100).toFixed(0)}% Hazard)</h4>
-          <p><strong>Status:</strong> ${seg.status}</p>
-          <h5 style="margin-top: 10px;">Top Risk Drivers (SHAP):</h5>
-          <ul style="padding-left: 18px; margin-top: 6px;">
-            ${seg.shap.map(s => `<li style="margin-bottom: 4px;">${s}</li>`).join('')}
-          </ul>
-        `;
+    function renderPolylines() {
+      polyLayers.forEach(l => map.removeLayer(l));
+      polyLayers = [];
+
+      const warnVal = parseInt(document.getElementById('warnSlider').value) / 100;
+      const critVal = parseInt(document.getElementById('critSlider').value) / 100;
+
+      segments.forEach(seg => {
+        const color = seg.hazard >= critVal ? '#ef4444' : (seg.hazard >= warnVal ? '#f59e0b' : '#10b981');
+        const poly = L.polyline(seg.coords, { color: color, weight: 6, opacity: 0.85 }).addTo(map);
+        
+        poly.on('click', () => {
+          document.getElementById('shapExplanationBox').innerHTML = `
+            <h4 style="color: ${color}; margin-bottom: 6px;">${seg.id} (${(seg.hazard*100).toFixed(0)}% Hazard)</h4>
+            <h5 style="margin-top: 10px;">Top Risk Drivers (SHAP):</h5>
+            <ul style="padding-left: 18px; margin-top: 6px;">
+              ${seg.shap.map(s => `<li style="margin-bottom: 4px;">${s}</li>`).join('')}
+            </ul>
+          `;
+        });
+        polyLayers.push(poly);
       });
-    });
+    }
+
+    renderPolylines();
+
+    function updateThresholds() {
+      document.getElementById('warnVal').innerText = document.getElementById('warnSlider').value + '%';
+      document.getElementById('critVal').innerText = document.getElementById('critSlider').value + '%';
+      renderPolylines();
+    }
+
+    function toggleSettingsDrawer() {
+      const el = document.getElementById('settingsDrawer');
+      el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function triggerCinematicDemo() {
+      // Animate camera pitch, zoom and center down into critical valley (Prompt 8)
+      map.flyTo([27.0600, 88.4700], 13, { duration: 4 });
+      setTimeout(() => {
+        alert("🎬 Cinematic Pitch Demo: Camera centered on highest risk segment NH10_SEG_003 (82% Hazard).");
+      }, 4200);
+    }
+
+    function toggleLanguage(lang) {
+      if (lang === 'hi') {
+        document.getElementById('titleHeader').innerText = "🏔️ मार्गसेतु — जीआईएस कंट्रोल रूम प्लैटफॉर्म";
+        document.getElementById('routeHeader').innerText = "🗺️ सुरक्षित मार्ग खोजें";
+      } else {
+        document.getElementById('titleHeader').innerText = "🏔️ MargSetu — GIS Control Room Platform";
+        document.getElementById('routeHeader').innerText = "🗺️ Find Safe Route";
+      }
+    }
 
     async function handleComputeRoute(e) {
       e.preventDefault();
@@ -196,12 +280,6 @@
       document.getElementById('syncBadge').innerHTML = "✓ Report Queued Offline";
       document.getElementById('syncBadge').style.color = "#f59e0b";
       alert("Report saved to local offline storage! Syncing with server...");
-    }
-
-    function triggerManualSync() {
-      document.getElementById('syncBadge').innerHTML = "✓ All Data Synced";
-      document.getElementById('syncBadge').style.color = "#10b981";
-      alert("Synced offline reports with backend server successfully.");
     }
   </script>
 </body>

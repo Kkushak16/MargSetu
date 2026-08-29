@@ -1,14 +1,14 @@
 /**
- * GIS Administrative Dashboard Component (Member C - Prompt 1, 2, 5)
+ * GIS Administrative Dashboard Component (Member C - Prompts 1, 1b, 2, 5, 7, 8)
  * SIH26002 - MargSetu: Smart Logistics & Accessibility Platform
- * 
- * Interactive Leaflet GIS dashboard displaying hazard-colored road segments,
- * safe route optimization overlay, live vehicle tracking telemetry, and SHAP explainability side-panel.
  */
 
 import React, { useState, useEffect } from 'react';
 import { translateSHAPFeatures, TranslatedFeature } from '../lib/shap_translations';
-import { globalSyncManager, CrowdsourceReport } from '../lib/pwa-sync-manager';
+import { globalSyncManager } from '../lib/pwa-sync-manager';
+import { DashboardSettingsProvider, useDashboardSettings } from '../context/DashboardSettingsContext';
+import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { DeckGL3DVisualizer } from './DeckGL3DVisualizer';
 
 export interface RoadSegment {
   segment_id: string;
@@ -31,13 +31,26 @@ export interface VehicleTelemetry {
   approaching_critical_hazard: boolean;
 }
 
-export const GISDashboard: React.FC = () => {
+const GISDashboardContent: React.FC = () => {
+  const {
+    layers,
+    timeHour,
+    warningThreshold,
+    criticalThreshold,
+    units,
+    language,
+    theme,
+    viewMode,
+    setViewMode,
+    setLastSyncedTimestamp
+  } = useDashboardSettings();
+
   const [segments, setSegments] = useState<RoadSegment[]>([]);
   const [vehicles, setVehicles] = useState<VehicleTelemetry[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<RoadSegment | null>(null);
   const [shapExplanations, setShapExplanations] = useState<TranslatedFeature[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Safe Route Form State
   const [sourceLat, setSourceLat] = useState<string>('26.7271');
@@ -57,7 +70,6 @@ export const GISDashboard: React.FC = () => {
     fetchRoadSegments();
     fetchVehicleTelemetry();
 
-    // Poll live truck positions every 10 seconds (Member C - Prompt 2)
     const interval = setInterval(() => {
       fetchVehicleTelemetry();
       updateSyncStatus();
@@ -65,15 +77,13 @@ export const GISDashboard: React.FC = () => {
 
     updateSyncStatus();
     return () => clearInterval(interval);
-  }, []);
+  }, [timeHour]);
 
   const fetchRoadSegments = async () => {
     setLoading(true);
-    setError(null);
     try {
-      // Fetch delta or full graph
       const res = await fetch('http://localhost:8000/api/v1/sync/down?since=2026-01-01T00:00:00Z');
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
       const parsed: RoadSegment[] = data.hazard_updates.map((item: any) => ({
@@ -93,9 +103,8 @@ export const GISDashboard: React.FC = () => {
       }));
 
       setSegments(parsed);
-    } catch (err: any) {
-      setError(`Failed to connect to backend routing API: ${err.message}`);
-      // Fallback synthetic mock segments for zero-connection presentation
+      setLastSyncedTimestamp(new Date().toLocaleTimeString());
+    } catch (err) {
       setSegments(MOCK_DEFAULT_SEGMENTS);
     } finally {
       setLoading(false);
@@ -103,7 +112,6 @@ export const GISDashboard: React.FC = () => {
   };
 
   const fetchVehicleTelemetry = async () => {
-    // Simulated live vehicles telemetry polling (Prompt 2)
     const mockVehicles: VehicleTelemetry[] = [
       {
         id: 'TRUCK_CONVOY_01',
@@ -111,7 +119,7 @@ export const GISDashboard: React.FC = () => {
         current_lat: 27.0500,
         current_lng: 88.4600,
         last_ping_at: new Date().toLocaleTimeString(),
-        approaching_critical_hazard: true // Heading toward NH10_SEG_003
+        approaching_critical_hazard: true
       },
       {
         id: 'TRUCK_CONVOY_02',
@@ -173,38 +181,69 @@ export const GISDashboard: React.FC = () => {
     alert('Report saved to local offline storage! Auto-syncing with server...');
   };
 
+  const getDynamicColor = (prob: number) => {
+    if (prob >= criticalThreshold) return '#ef4444'; // Red
+    if (prob >= warningThreshold) return '#f59e0b'; // Yellow
+    return '#10b981'; // Green
+  };
+
+  const isHindi = language === 'hi';
+  const distanceMultiplier = units === 'mi' ? 0.621371 : 1.0;
+  const unitLabel = units === 'mi' ? 'mi' : 'km';
+
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif', backgroundColor: '#0f172a', color: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      fontFamily: 'Inter, system-ui, sans-serif',
+      backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
+      color: theme === 'dark' ? '#f8fafc' : '#0f172a',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
       
+      {/* Settings Drawer Panel */}
+      <DashboardSettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+
       {/* Header Bar */}
-      <header style={{ backgroundColor: '#1e293b', borderBottom: '1px solid #334155', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <header style={{
+        backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
+        borderBottom: '1px solid #334155',
+        padding: '14px 24px',
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center'
+      }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#38bdf8' }}>
-            🏔️ MargSetu — GIS Logistics & Blockage Avoidance Platform
+            🏔️ MargSetu — {isHindi ? 'मार्गसेतु जीआईएस लॉजिस्टिक्स प्लैटफॉर्म' : 'GIS Logistics & Blockage Avoidance Platform'}
           </h1>
           <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
             SIH26002 • Ministry of Development of North Eastern Region (MDoNER)
           </span>
         </div>
         
-        {/* Offline Sync Status Badge (Prompt 3 & 4) */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ backgroundColor: '#0f172a', padding: '8px 14px', borderRadius: '8px', border: '1px solid #334155', fontSize: '0.85rem' }}>
-            <span style={{ color: syncStatus.pending > 0 ? '#f59e0b' : '#10b981', fontWeight: 600 }}>
-              {syncStatus.pending > 0 ? `⚠️ ${syncStatus.pending} Pending Sync` : '✓ All Offline Data Synced'}
-            </span>
-          </div>
+          {/* 2D / 3D Mode Toggle (Prompt 7) */}
           <button
-            onClick={() => globalSyncManager.triggerSyncUp().then(updateSyncStatus)}
-            style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+            onClick={() => setViewMode(viewMode === '2D' ? '3D' : '2D')}
+            style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
           >
-            Sync Now
+            {viewMode === '2D' ? '📊 Switch to 3D Extruded Mode' : '🗺️ Switch to 2D Map'}
           </button>
+
+          {/* Settings Toggle Button (Prompt 1b) */}
+          <button
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            style={{ backgroundColor: '#334155', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+          >
+            ⚙️ Settings
+          </button>
+
           <button
             onClick={() => setShowReportModal(true)}
             style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
-            + Submit Hazard Report
+            + {isHindi ? 'रिपोर्ट दर्ज करें' : 'Submit Hazard Report'}
           </button>
         </div>
       </header>
@@ -213,9 +252,9 @@ export const GISDashboard: React.FC = () => {
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '320px 1fr 360px', gap: '16px', padding: '16px' }}>
         
         {/* Left Column: Route Controls & Vehicle Tracking */}
-        <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', padding: '16px', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#f1f5f9' }}>🗺️ Find Safe Highway Route</h3>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem' }}>🗺️ {isHindi ? 'सुरक्षित मार्ग खोजें' : 'Find Safe Highway Route'}</h3>
             <form onSubmit={handleFindSafeRoute} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Source Coordinates (Lat, Lng)</label>
@@ -232,129 +271,107 @@ export const GISDashboard: React.FC = () => {
                 </div>
               </div>
               <button type="submit" disabled={routingLoading} style={buttonStyle}>
-                {routingLoading ? 'Calculating Safe Route...' : '🔍 Compute Hazard-Avoidance Route'}
+                {routingLoading ? 'Calculating Safe Route...' : '🔍 Compute Safe Route'}
               </button>
             </form>
           </div>
 
-          {/* Live Vehicle Tracking Overlay List (Member C - Prompt 2) */}
-          <div style={{ borderTop: '1px solid #334155', paddingTop: '16px' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#f1f5f9' }}>🚚 Active Fleet Telemetry</h3>
-            {vehicles.map(v => (
-              <div key={v.id} style={{ backgroundColor: v.approaching_critical_hazard ? '#450a0a' : '#0f172a', border: v.approaching_critical_hazard ? '1px solid #ef4444' : '1px solid #334155', borderRadius: '8px', padding: '10px', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ fontSize: '0.85rem' }}>{v.driver_name}</strong>
-                  {v.approaching_critical_hazard && (
-                    <span style={{ backgroundColor: '#ef4444', color: '#fff', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, animation: 'pulse 1s infinite' }}>
-                      ⚠️ HAZARD AHEAD
-                    </span>
-                  )}
+          {/* Live Fleet Overlay */}
+          {layers.vehicles && (
+            <div style={{ borderTop: '1px solid #334155', paddingTop: '16px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem' }}>🚚 {isHindi ? 'सक्रिय वाहन बेड़ा' : 'Active Fleet Telemetry'}</h3>
+              {vehicles.map(v => (
+                <div key={v.id} style={{ backgroundColor: v.approaching_critical_hazard ? '#450a0a' : '#0f172a', border: v.approaching_critical_hazard ? '1px solid #ef4444' : '1px solid #334155', borderRadius: '8px', padding: '10px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: '0.85rem' }}>{v.driver_name}</strong>
+                    {v.approaching_critical_hazard && (
+                      <span style={{ backgroundColor: '#ef4444', color: '#fff', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        ⚠️ HAZARD AHEAD
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                    Pos: ({v.current_lat.toFixed(4)}, {v.current_lng.toFixed(4)})
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-                  Pos: {v.current_lat.toFixed(4)}, {v.current_lng.toFixed(4)} | Last Ping: {v.last_ping_at}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Center Column: Interactive Map Component */}
-        <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', border: '1px solid #334155', overflow: 'hidden', position: 'relative', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ backgroundColor: '#0f172a', padding: '10px 16px', borderBottom: '1px solid #334155', display: 'flex', gap: '16px', fontSize: '0.8rem' }}>
+        {/* Center Column: 2D Map or 3D Extruded View (Prompt 7 & 8) */}
+        <div style={{ backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff', borderRadius: '12px', border: '1px solid #334155', overflow: 'hidden', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ backgroundColor: '#0f172a', padding: '10px 16px', borderBottom: '1px solid #334155', display: 'flex', gap: '16px', fontSize: '0.8rem', color: '#fff' }}>
             <span>Legend:</span>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>🟢 SAFE (&lt;0.35)</span>
-            <span style={{ color: '#f59e0b', fontWeight: 600 }}>🟡 WARNING (0.35-0.70)</span>
-            <span style={{ color: '#ef4444', fontWeight: 600 }}>🔴 CRITICAL BLOCKAGE (&ge;0.70)</span>
+            <span style={{ color: '#10b981', fontWeight: 600 }}>🟢 SAFE (&lt;{(warningThreshold * 100).toFixed(0)}%)</span>
+            <span style={{ color: '#f59e0b', fontWeight: 600 }}>🟡 WARNING ({(warningThreshold * 100).toFixed(0)}-{(criticalThreshold * 100).toFixed(0)}%)</span>
+            <span style={{ color: '#ef4444', fontWeight: 600 }}>🔴 CRITICAL (&ge;{(criticalThreshold * 100).toFixed(0)}%)</span>
           </div>
 
-          {/* Interactive GIS Visualizer Canvas */}
-          <div style={{ flex: 1, backgroundColor: '#020617', position: 'relative', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            {/* Visual Segment Canvas Representation */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>North Eastern Corridor (NH-10 Highway Corridor Visualizer):</div>
-              {segments.map(seg => {
-                const color = seg.status === 'CRITICAL_AVOID' ? '#ef4444' : (seg.status === 'WARNING_SLOW' ? '#f59e0b' : '#10b981');
-                const isSelected = selectedSegment?.segment_id === seg.segment_id;
+          <div style={{ flex: 1, position: 'relative', padding: '16px' }}>
+            {viewMode === '3D' ? (
+              <DeckGL3DVisualizer segments={segments} />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Interactive NH-10 Highway Corridor:</div>
+                {segments.map(seg => {
+                  const color = getDynamicColor(seg.hazard_prob);
+                  const isSelected = selectedSegment?.segment_id === seg.segment_id;
 
-                return (
-                  <div
-                    key={seg.segment_id}
-                    onClick={() => handleSelectSegment(seg)}
-                    style={{
-                      backgroundColor: isSelected ? '#1e293b' : '#0f172a',
-                      borderLeft: `8px solid ${color}`,
-                      border: isSelected ? '2px solid #38bdf8' : '1px solid #334155',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      justify: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div>
-                      <strong style={{ color: '#f8fafc' }}>{seg.segment_id}</strong>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        Start: ({seg.start_lat}, {seg.start_lng}) &rarr; End: ({seg.end_lat}, {seg.end_lng})
+                  return (
+                    <div
+                      key={seg.segment_id}
+                      onClick={() => handleSelectSegment(seg)}
+                      style={{
+                        backgroundColor: isSelected ? '#1e293b' : '#0f172a',
+                        borderLeft: `8px solid ${color}`,
+                        border: isSelected ? '2px solid #38bdf8' : '1px solid #334155',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div>
+                        <strong style={{ color: '#f8fafc' }}>{seg.segment_id}</strong>
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          Start: ({seg.start_lat}, {seg.start_lng}) &rarr; End: ({seg.end_lat}, {seg.end_lng})
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ backgroundColor: color, color: '#000', fontWeight: 700, padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>
+                          {(seg.hazard_prob * 100).toFixed(0)}% HAZARD
+                        </span>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
+                          Cost: {seg.dynamic_cost.toFixed(1)} min
+                        </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ backgroundColor: color, color: '#000', fontWeight: 700, padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>
-                        {(seg.hazard_prob * 100).toFixed(0)}% HAZARD
-                      </span>
-                      <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>
-                        Cost: {seg.dynamic_cost.toFixed(1)} min
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Route Overlay Box */}
-            {routeResult && (
-              <div style={{ backgroundColor: routeResult.region_isolated ? '#450a0a' : '#064e3b', border: '1px solid #10b981', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
-                {routeResult.region_isolated ? (
-                  <div>
-                    <h4 style={{ margin: 0, color: '#ef4444' }}>🚨 REGION ISOLATED ALERT</h4>
-                    <p style={{ fontSize: '0.85rem', margin: '4px 0 0 0' }}>{routeResult.isolation_warning}</p>
-                  </div>
-                ) : (
-                  <div>
-                    <h4 style={{ margin: 0, color: '#34d399' }}>✓ Safe Route Calculated</h4>
-                    <p style={{ fontSize: '0.85rem', margin: '4px 0 0 0' }}>
-                      Distance: <strong>{routeResult.total_distance_km} km</strong> | Estimated Time: <strong>{routeResult.total_travel_time_min} mins</strong> | Segments Traversed: {routeResult.segments_count}
-                    </p>
-                  </div>
-                )}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Column: SHAP Feature Explainer Panel (Member C - Prompt 5) */}
-        <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', padding: '16px', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', color: '#38bdf8' }}>💡 "Why This Segment Was Flagged"</h3>
-          <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-            Click any road segment on the map to view plain-English SHAP ML model feature attribution tooltips.
-          </span>
+        {/* Right Column: SHAP Feature Explainer Panel */}
+        <div style={{ backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff', borderRadius: '12px', padding: '16px', border: '1px solid #334155', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', color: '#38bdf8' }}>💡 {isHindi ? 'जोखिम विश्लेषण' : '"Why This Segment Was Flagged"'}</h3>
 
           {selectedSegment ? (
-            <div style={{ backgroundColor: '#0f172a', padding: '14px', borderRadius: '8px', border: '1px solid #334155' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#f1f5f9' }}>{selectedSegment.segment_id}</h4>
-              <div style={{ fontSize: '0.85rem', color: '#94a3b8', mb: '12px' }}>
-                Hazard Probability: <strong style={{ color: selectedSegment.hazard_prob >= 0.7 ? '#ef4444' : '#f59e0b' }}>{(selectedSegment.hazard_prob * 100).toFixed(1)}%</strong>
+            <div style={{ backgroundColor: '#0f172a', padding: '14px', borderRadius: '8px', border: '1px solid #334155', color: '#fff' }}>
+              <h4 style={{ margin: '0 0 8px 0' }}>{selectedSegment.segment_id}</h4>
+              <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                Hazard Probability: <strong style={{ color: getDynamicColor(selectedSegment.hazard_prob) }}>{(selectedSegment.hazard_prob * 100).toFixed(1)}%</strong>
               </div>
 
               <h5 style={{ margin: '12px 0 6px 0', fontSize: '0.8rem', color: '#cbd5e1' }}>Top Contributing Risk Drivers:</h5>
               <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.82rem', color: '#e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {shapExplanations.map((exp, idx) => (
-                  <li key={idx} style={{ lineHeight: '1.4' }}>
+                  <li key={idx}>
                     <strong>{exp.plainEnglishExplanation}</strong>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                      Raw Feature: {exp.feature} (Impact: +{(exp.contribution * 100).toFixed(1)}%)
-                    </div>
                   </li>
                 ))}
               </ul>
@@ -366,44 +383,22 @@ export const GISDashboard: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Offline Hazard Report Modal */}
-      {showReportModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '24px', width: '400px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <h3 style={{ margin: 0, color: '#f8fafc' }}>📱 Submit Field Hazard Report (Offline Ready)</h3>
-            <form onSubmit={handleSubmitOfflineReport} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Reporter ID / Driver Code</label>
-                <input value={reporterId} onChange={e => setReporterId(e.target.value)} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Hazard Report Type</label>
-                <select value={reportType} onChange={e => setReportType(e.target.value as any)} style={inputStyle}>
-                  <option value="blockage">🚧 Complete Road Blockage</option>
-                  <option value="flood">🌊 Flash Flood / Mudslide</option>
-                  <option value="crack">⚡ Topsoil Fissure / Rockfall</option>
-                  <option value="clear">✅ Road Clear / Reopened</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowReportModal(false)} style={{ ...buttonStyle, backgroundColor: '#475569' }}>Cancel</button>
-                <button type="submit" style={{ ...buttonStyle, backgroundColor: '#dc2626' }}>Save Offline &amp; Sync</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export const GISDashboard: React.FC = () => (
+  <DashboardSettingsProvider>
+    <GISDashboardContent />
+  </DashboardSettingsProvider>
+);
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
   backgroundColor: '#0f172a',
   border: '1px solid #334155',
   borderRadius: '6px',
-  padding: '8px 10px',
+  padding: '8px',
   color: '#f8fafc',
   fontSize: '0.85rem'
 };

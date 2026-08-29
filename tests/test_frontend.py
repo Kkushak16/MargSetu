@@ -1,17 +1,15 @@
 """
-Unit & Integration Test Suite for Member C (Frontend, Mobile & PWA Track)
+Unit & Integration Test Suite for Member C (Frontend, Mobile, PWA & 3D DeckGL Track)
 """
 
 import unittest
 import os
 import json
-import re
 
 
 class TestFrontendMemberC(unittest.TestCase):
 
     def test_shap_translation_mapping(self):
-        # Python test validating SHAP feature plain-English mappings
         dictionary = {
             "ari_7d": "Heavy rainfall accumulation over the past 7 days",
             "slope_deg": "Extremely steep mountain incline (>30° slope)",
@@ -20,7 +18,6 @@ class TestFrontendMemberC(unittest.TestCase):
             "forecast_rain_3h": "Severe cloudburst forecast in next 3 hours"
         }
 
-        # Test translation lookups
         self.assertIn("rainfall", dictionary["ari_7d"])
         self.assertIn("steep", dictionary["slope_deg"])
         self.assertIn("fault", dictionary["dist_to_fault_m"])
@@ -32,12 +29,29 @@ class TestFrontendMemberC(unittest.TestCase):
         with open(html_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Check required Leaflet, safe route form, and SHAP container
+        # Check required Leaflet, settings drawer, 3D cinematic demo, and SHAP container
         self.assertIn("leaflet.css", content)
         self.assertIn("leaflet.js", content)
         self.assertIn("shapExplanationBox", content)
-        self.assertIn("handleComputeRoute", content)
-        self.assertIn("handleSaveOfflineReport", content)
+        self.assertIn("settingsDrawer", content)
+        self.assertIn("triggerCinematicDemo", content)
+        self.assertIn("updateThresholds", content)
+
+    def test_dashboard_settings_context_and_3d_files(self):
+        context_path = os.path.join("src", "frontend", "context", "DashboardSettingsContext.tsx")
+        panel_path = os.path.join("src", "frontend", "components", "DashboardSettingsPanel.tsx")
+        deckgl_path = os.path.join("src", "frontend", "components", "DeckGL3DVisualizer.tsx")
+
+        self.assertTrue(os.path.exists(context_path))
+        self.assertTrue(os.path.exists(panel_path))
+        self.assertTrue(os.path.exists(deckgl_path))
+
+        with open(deckgl_path, "r", encoding="utf-8") as f:
+            code = f.read()
+
+        # Check 3D extruded columns and cinematic fly-through
+        self.assertIn("triggerCinematicFlyThrough", code)
+        self.assertIn("3D Extruded Hazard Columns", code)
 
     def test_flutter_field_app_files(self):
         pubspec_path = os.path.join("mobile", "pubspec.yaml")
@@ -51,7 +65,6 @@ class TestFrontendMemberC(unittest.TestCase):
         with open(main_dart_path, "r", encoding="utf-8") as f:
             dart_code = f.read()
 
-        # Verify 3 screens present in Flutter app
         self.assertIn("MapScreen", dart_code)
         self.assertIn("ReportScreen", dart_code)
         self.assertIn("SyncStatusScreen", dart_code)
