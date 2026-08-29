@@ -1,0 +1,18 @@
+{
+  "engine": "XGBoost",
+  "mean_pr_auc": 0.6654,
+  "mean_recall_at_90_precision": 0.4508,
+  "feature_importances": {
+    "slope_deg": 0.08584301173686981,
+    "aspect": 0.03868328034877777,
+    "curvature": 0.07974749803543091,
+    "twi": 0.08340106904506683,
+    "dist_to_fault_m": 0.07706639915704727,
+    "soil_saturation_pct": 0.06319732964038849,
+    "ari_7d": 0.3047938644886017,
+    "forecast_rain_3h": 0.13724181056022644,
+    "ndvi": 0.1300256848335266
+  },
+  "n_samples": 150,
+  "positive_samples": 15
+}
