@@ -43,39 +43,45 @@ app.mount("/ml", predict_app)
 
 # Serve static frontend files and control room dashboard
 import os
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
-frontend_public_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public"))
-if os.path.exists(frontend_public_dir):
-    app.mount("/static", StaticFiles(directory=frontend_public_dir), name="static")
+# Candidate paths for index.html in Vercel Serverless environment
+INDEX_HTML_CANDIDATES = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "index.html")),
+    os.path.abspath(os.path.join(os.getcwd(), "src", "frontend", "public", "index.html")),
+    os.path.abspath("src/frontend/public/index.html"),
+    "/var/task/src/frontend/public/index.html"
+]
 
-@app.get("/dashboard")
-@app.get("/")
+def _find_index_html():
+    for p in INDEX_HTML_CANDIDATES:
+        if os.path.exists(p):
+            return p
+    return None
+
+frontend_public_dir = None
+for p in INDEX_HTML_CANDIDATES:
+    d = os.path.dirname(p)
+    if os.path.exists(d):
+        frontend_public_dir = d
+        break
+
+if frontend_public_dir and os.path.exists(frontend_public_dir):
+    try:
+        app.mount("/static", StaticFiles(directory=frontend_public_dir), name="static")
+    except Exception:
+        pass
+
+@app.get("/dashboard", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 def root_dashboard():
-    index_path = os.path.join(frontend_public_dir, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(
-            index_path,
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-                "Pragma": "no-cache",
-                "Expires": "0"
-            }
-        )
-    return {
-        "platform": "MargSetu",
-        "problem_id": "SIH26002",
-        "organization": "Ministry of Development of North Eastern Region (MDoNER)",
-        "status": "online",
-        "endpoints": {
-            "routing": "/route-safe",
-            "sync_up": "/api/v1/sync/up",
-            "sync_down": "/api/v1/sync/down",
-            "ml_predict": "/ml/predict",
-            "health": "/health"
-        }
-    }
+    index_path = _find_index_html()
+    if index_path and os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content, status_code=200)
+    return HTMLResponse(content="<h1>MargSetu Control Room</h1><p>Status: Online</p>", status_code=200)
 
 
 @app.get("/health")
