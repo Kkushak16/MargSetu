@@ -48,11 +48,15 @@ from fastapi.staticfiles import StaticFiles
 
 # Candidate paths for index.html in Vercel Serverless environment
 INDEX_HTML_CANDIDATES = [
+    os.path.abspath("index.html"),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "index.html")),
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "index.html")),
     os.path.abspath(os.path.join(os.getcwd(), "src", "frontend", "public", "index.html")),
     os.path.abspath("src/frontend/public/index.html"),
+    "/var/task/index.html",
     "/var/task/src/frontend/public/index.html"
 ]
+
 
 def _find_index_html():
     for p in INDEX_HTML_CANDIDATES:
@@ -73,15 +77,21 @@ if frontend_public_dir and os.path.exists(frontend_public_dir):
     except Exception:
         pass
 
+from src.backend.html_content import INDEX_HTML_STR
+
 @app.get("/dashboard", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
 def root_dashboard():
     index_path = _find_index_html()
     if index_path and os.path.exists(index_path):
-        with open(index_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        return HTMLResponse(content=content, status_code=200)
-    return HTMLResponse(content="<h1>MargSetu Control Room</h1><p>Status: Online</p>", status_code=200)
+        try:
+            with open(index_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            return HTMLResponse(content=content, status_code=200)
+        except Exception:
+            pass
+    return HTMLResponse(content=INDEX_HTML_STR, status_code=200)
+
 
 
 @app.get("/health")
