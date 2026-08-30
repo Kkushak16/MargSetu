@@ -41,8 +41,28 @@ app.include_router(sync_router)
 app.mount("/ml", predict_app)
 
 
+# Serve static frontend files and control room dashboard
+import os
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+frontend_public_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "public"))
+if os.path.exists(frontend_public_dir):
+    app.mount("/static", StaticFiles(directory=frontend_public_dir), name="static")
+
+@app.get("/dashboard")
 @app.get("/")
-def root():
+def root_dashboard():
+    index_path = os.path.join(frontend_public_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(
+            index_path,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     return {
         "platform": "MargSetu",
         "problem_id": "SIH26002",

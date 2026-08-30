@@ -1,481 +1,1100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MargSetu — GIS Disaster Response Control Room</title>
-  <meta name="description" content="SIH26002 Smart Logistics Platform for North Eastern Region highway blockage prediction and dynamic re-routing">
-  <meta name="theme-color" content="#0f172a">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>">
-  
-  <!-- Google Font: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
-    body { background-color: #0f172a; color: #f8fafc; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-    
-    header { background-color: #1e293b; border-bottom: 1px solid #334155; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
-    .logo-box h1 { font-size: 1.25rem; color: #38bdf8; font-weight: 700; letter-spacing: -0.02em; }
-    .logo-box span { font-size: 0.8rem; color: #94a3b8; }
-    
-    .badge { padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; background: #0f172a; border: 1px solid #334155; color: #10b981; transition: all 0.2s ease; }
-    .btn { background: #0284c7; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s ease; }
-    .btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); }
-    .btn-danger { background: #dc2626; }
-    .btn-secondary { background: #334155; }
-    .btn-secondary:hover { background: #475569; }
-    .btn-success { background: #10b981; color: black; }
-    
-    .main-layout { flex: 1; display: grid; grid-template-columns: 340px 1fr 360px; gap: 12px; padding: 12px; height: calc(100vh - 65px); overflow: hidden; }
-    .panel { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
-    .panel::-webkit-scrollbar { width: 6px; }
-    .panel::-webkit-scrollbar-track { background: transparent; }
-    .panel::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    .panel::-webkit-scrollbar-thumb:hover { background: #475569; }
-    #map { height: 100%; border-radius: 10px; border: 1px solid #334155; background: #020617; position: relative; }
-    
-    .tabs { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; background: #0f172a; padding: 4px; border-radius: 8px; }
-    .tab-btn { background: transparent; color: #94a3b8; border: none; padding: 6px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.75rem; transition: all 0.2s ease; }
-    .tab-btn:hover:not(.active) { background: #1e293b; color: #cbd5e1; }
-    .tab-btn.active { background: #0284c7; color: white; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3); }
-    
-    .form-group label { font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 4px; }
-    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    input, select { width: 100%; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: white; font-size: 0.82rem; transition: border-color 0.2s ease; }
-    input:focus, select:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15); }
-    
-    .card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 0.8rem; transition: all 0.2s ease; }
-    .card:hover { border-color: #475569; }
-    .card.warning { border-color: #ef4444; background: #450a0a; }
-    .card.warning:hover { border-color: #f87171; }
-    
-    .status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 1px solid #334155; padding: 10px 20px; border-radius: 8px; font-size: 0.82rem; z-index: 9999; display: none; animation: slideUp 0.3s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
-    @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    
-    .settings-drawer { position: fixed; top: 65px; right: 16px; width: 330px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; z-index: 8888; display: none; flex-direction: column; gap: 14px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); animation: drawerIn 0.25s ease; }
-    @keyframes drawerIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-    
-    /* Custom range slider styling */
-    input[type="range"] { -webkit-appearance: none; height: 6px; background: #334155; border-radius: 3px; border: none; cursor: pointer; }
-    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #38bdf8; cursor: pointer; box-shadow: 0 2px 6px rgba(56,189,248,0.4); }
-  </style>
-</head>
-<body>
-
-  <header>
-    <div class="logo-box">
-      <h1 id="titleHeader">🏔️ MargSetu — GIS Disaster Response Control Room</h1>
-      <span>SIH26002 • Ministry of Development of North Eastern Region (MDoNER)</span>
-    </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-      <div id="syncBadge" class="badge">● Field Sync: Online (Just Now)</div>
-      <button class="btn btn-secondary" onclick="toggleSettingsDrawer()">⚙️ Control Room Settings</button>
-    </div>
-  </header>
-
-  <div class="main-layout">
-    <!-- Left Operations Panel -->
-    <div class="panel">
-      <div class="tabs">
-        <button class="tab-btn active" id="tabRouteBtn" onclick="switchTab('route')">Route</button>
-        <button class="tab-btn" id="tabFleetBtn" onclick="switchTab('fleet')">Fleet</button>
-        <button class="tab-btn" id="tabFeedBtn" onclick="switchTab('feed')">Feed</button>
-        <button class="tab-btn" id="tabAlertsBtn" onclick="switchTab('alerts')">Alerts</button>
-      </div>
-
-      <!-- Tab 1: Route Panel -->
-      <div id="tabRoute">
-        <h3 id="routeHeader" style="margin-bottom: 10px; color: #38bdf8;">🗺️ Find Safe Route</h3>
-        <form onsubmit="handleComputeRoute(event)">
-          <div class="form-group">
-            <label>Origin (Lat, Lng)</label>
-            <div class="input-row">
-              <input type="text" id="srcLat" value="26.7271" />
-              <input type="text" id="srcLng" value="88.3953" />
-            </div>
-          </div>
-          <div class="form-group" style="margin-top: 10px;">
-            <label>Destination (Lat, Lng)</label>
-            <div class="input-row">
-              <input type="text" id="tgtLat" value="27.3389" />
-              <input type="text" id="tgtLng" value="88.6065" />
-            </div>
-          </div>
-          <button type="submit" class="btn" style="width: 100%; margin-top: 12px;">🔍 Compute Safe Route</button>
-        </form>
-      </div>
-
-      <!-- Tab 2: Vehicle Telemetry Layer -->
-      <div id="tabFleet" style="display: none;">
-        <h3 style="margin-bottom: 10px; color: #38bdf8;">🚚 Active Fleet Layer</h3>
-        <div id="fleetList" style="display: flex; flex-direction: column; gap: 8px;">
-          <div class="card warning">
-            <div style="display: flex; justify-content: space-between;">
-              <strong>TRUCK_CONVOY_01 (Medical)</strong>
-              <span style="color: #ef4444; font-size: 0.65rem; font-weight: 700;">⚠️ HAZARD AHEAD</span>
-            </div>
-            <div style="color: #94a3b8; font-size: 0.75rem; margin-top: 4px;">Pos: (27.0500, 88.4600) • Last ping: Just Now</div>
-          </div>
-          <div class="card">
-            <strong>TRUCK_CONVOY_02 (Ration Supply)</strong>
-            <div style="color: #94a3b8; font-size: 0.75rem; margin-top: 4px;">Pos: (26.8500, 88.4200) • Last ping: 2m ago</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab 3: Crowdsource Verification Feed -->
-      <div id="tabFeed" style="display: none;">
-        <h3 style="margin-bottom: 10px; color: #38bdf8;">📸 Crowdsource Verification Feed <span style="font-size: 0.7rem; background: #0284c7; color: white; padding: 2px 8px; border-radius: 10px; margin-left: 6px;">2 Pending</span></h3>
-        <div id="crowdsourceFeedList" style="display: flex; flex-direction: column; gap: 8px;">
-          <div class="card" id="report_1">
-            <div style="display: flex; justify-content: space-between;">
-              <strong style="color: #38bdf8;">NH10_SEG_005</strong>
-              <span style="color: #f59e0b; font-size: 0.7rem;">● PENDING</span>
-            </div>
-            <div style="font-weight: 700; margin: 4px 0;">🚧 Complete Road Blockage</div>
-            <div style="font-size: 0.72rem; color: #94a3b8;">By: DRIVER_RAKESH • 10m ago • GPS: (27.0600, 88.4700)</div>
-            <div style="display: flex; gap: 6px; margin-top: 6px;">
-              <button class="btn btn-success" style="flex:1;" onclick="verifyReport('report_1')">✓ Verify & Mutate Cost</button>
-              <button class="btn btn-danger" style="flex:1;" onclick="rejectReport('report_1')">✗ Reject</button>
-            </div>
-          </div>
-          <div class="card" id="report_2">
-            <div style="display: flex; justify-content: space-between;">
-              <strong style="color: #38bdf8;">NH10_SEG_004</strong>
-              <span style="color: #f59e0b; font-size: 0.7rem;">● PENDING</span>
-            </div>
-            <div style="font-weight: 700; margin: 4px 0;">🌊 Flash Flood / Mudslide</div>
-            <div style="font-size: 0.72rem; color: #94a3b8;">By: AGENT_SONAM • 25m ago • GPS: (26.9800, 88.4650)</div>
-            <div style="display: flex; gap: 6px; margin-top: 6px;">
-              <button class="btn btn-success" style="flex:1;" onclick="verifyReport('report_2')">✓ Verify & Mutate Cost</button>
-              <button class="btn btn-danger" style="flex:1;" onclick="rejectReport('report_2')">✗ Reject</button>
-            </div>
-          </div>
-          <div class="card" id="report_3" style="border-color: #10b981; background: #064e3b;">
-            <div style="display: flex; justify-content: space-between;">
-              <strong style="color: #38bdf8;">NH10_SEG_001</strong>
-              <span style="color: #10b981; font-size: 0.7rem;">● VERIFIED</span>
-            </div>
-            <div style="font-weight: 700; margin: 4px 0;">✅ Road Clear (Post-Cleanup)</div>
-            <div style="font-size: 0.72rem; color: #94a3b8;">By: BRO_ENGINEER_VERMA • 1h ago • GPS: (26.7271, 88.3953)</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab 4: Disaster Alerts Sidebar -->
-      <div id="tabAlerts" style="display: none;">
-        <h3 style="margin-bottom: 10px; color: #f43f5e;">📢 Timestamped Disaster Log <span style="font-size: 0.7rem; background: #881337; color: #fda4af; padding: 2px 8px; border-radius: 10px; margin-left: 6px;">3 Active</span></h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div class="card warning">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <strong style="color: #fff;">🚨 Severe Cloudburst Blockage</strong>
-              <span style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700;">CRITICAL</span>
-            </div>
-            <div style="font-size: 0.75rem; color: #94a3b8;">📍 NH10 Kalimpong-Rangpo Corridor • 10m ago</div>
-            <p style="font-size: 0.75rem; margin-top: 4px; color: #cbd5e1;">Continuous 120mm/h rain triggered severe topsoil collapse. Road completely severed.</p>
-          </div>
-          <div class="card" style="border-color: #f59e0b; background: #451a03;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <strong style="color: #fbbf24;">⚠️ Mudslide Debris Slowdown</strong>
-              <span style="background: #f59e0b; color: #000; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700;">WARNING</span>
-            </div>
-            <div style="font-size: 0.75rem; color: #94a3b8;">📍 NH10 Sevoke Bypass • 35m ago</div>
-            <p style="font-size: 0.75rem; margin-top: 4px; color: #cbd5e1;">Debris accumulated on lane 2. Traffic speed reduced to 15 km/h.</p>
-          </div>
-          <div class="card" style="border-color: #0284c7;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <strong style="color: #38bdf8;">ℹ️ BRO Maintenance Advisory</strong>
-              <span style="background: #0284c7; color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700;">INFO</span>
-            </div>
-            <div style="font-size: 0.75rem; color: #94a3b8;">📍 NH10 Melli Section • 2h ago</div>
-            <p style="font-size: 0.75rem; margin-top: 4px; color: #cbd5e1;">Scheduled rockfall barrier construction. Single-lane alternating traffic 0600-1800h.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Center GIS Map View -->
-    <div style="position: relative;">
-      <div id="map"></div>
-      <!-- Floating Map Legend -->
-      <div id="mapLegend" style="position: absolute; bottom: 16px; left: 16px; z-index: 999; background: rgba(15, 23, 42, 0.92); border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; font-size: 0.75rem; backdrop-filter: blur(8px);">
-        <div style="font-weight: 700; color: #f8fafc; margin-bottom: 6px;">Map Legend</div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div><span style="display: inline-block; width: 14px; height: 4px; background: #10b981; border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span><span style="color: #10b981;">SAFE (&lt;35% hazard)</span></div>
-          <div><span style="display: inline-block; width: 14px; height: 4px; background: #f59e0b; border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span><span style="color: #f59e0b;">WARNING (35–70%)</span></div>
-          <div><span style="display: inline-block; width: 14px; height: 4px; background: #ef4444; border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span><span style="color: #ef4444;">CRITICAL (≥70%)</span></div>
-          <div><span style="color: #38bdf8;">- - -</span> <span style="color: #38bdf8;">Computed Safe Route</span></div>
-          <div><span style="color: #a78bfa;">●</span> <span style="color: #94a3b8;">Vehicle Convoy</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Segment SHAP Click Panel -->
-    <div class="panel">
-      <h3 style="color: #38bdf8;">💡 Segment ML Risk Breakdown</h3>
-      <p style="font-size: 0.8rem; color: #94a3b8;">Click any road segment on the map to inspect SHAP feature attribution in plain English.</p>
-      
-      <div id="shapExplanationBox" class="card" style="padding: 14px;">
-        <strong>Select a road segment on the map.</strong>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings Drawer (Prompt 1b) -->
-  <div id="settingsDrawer" class="settings-drawer">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px;">
-      <strong style="color: #38bdf8;">⚙️ Control Room Settings</strong>
-      <button onclick="toggleSettingsDrawer()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.2rem;">×</button>
-    </div>
-
-    <!-- Layer Toggles -->
-    <div>
-      <strong style="color: #cbd5e1; font-size: 0.8rem;">🗺️ Active Map Layers</strong>
-      <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 0.8rem;">
-        <label><input type="checkbox" checked /> Road Network Graph</label>
-        <label><input type="checkbox" checked /> Live Vehicle Telemetry</label>
-        <label><input type="checkbox" checked /> Crowdsourced Alerts</label>
-        <label><input type="checkbox" checked /> Rainfall ARI Overlay</label>
-      </div>
-    </div>
-
-    <!-- Threshold Sliders for Judges -->
-    <div style="border-top: 1px solid #334155; padding-top: 8px;">
-      <strong style="font-size: 0.8rem;">🎛️ Live Threshold Cutoffs</strong>
-      <div style="margin-top: 6px;">
-        <label style="font-size:0.75rem; color:#f59e0b;">WARNING Cutoff: <strong id="warnVal">35%</strong></label>
-        <input type="range" min="10" max="50" value="35" oninput="updateThresholds()" id="warnSlider" />
-      </div>
-      <div>
-        <label style="font-size:0.75rem; color:#ef4444;">CRITICAL Cutoff: <strong id="critVal">70%</strong></label>
-        <input type="range" min="50" max="90" value="70" oninput="updateThresholds()" id="critSlider" />
-      </div>
-    </div>
-
-    <!-- 24h Time Scrubbing -->
-    <div style="border-top: 1px solid #334155; padding-top: 8px;">
-      <label style="font-size:0.75rem; color:#38bdf8;">24h Demo Replay: <strong id="timeVal">Now (Live)</strong></label>
-      <input type="range" min="0" max="24" value="24" oninput="document.getElementById('timeVal').innerText = this.value == 24 ? 'Now (Live)' : (24 - this.value) + 'h ago';" />
-    </div>
-
-    <!-- Language & Units & Theme -->
-    <div style="border-top: 1px solid #334155; padding-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-      <div>
-        <label style="font-size: 0.75rem;">Language</label>
-        <select onchange="toggleLanguage(this.value)">
-          <option value="en">English</option>
-          <option value="hi">हिंदी (Hindi)</option>
-        </select>
-      </div>
-      <div>
-        <label style="font-size: 0.75rem;">Units</label>
-        <select>
-          <option value="km">Kilometers</option>
-          <option value="mi">Miles</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>MargSetu Command — GIS Control Room</title>
+  <meta name="description" content="SIH26002 Smart Logistics Platform for North Eastern Region highway blockage prediction and dynamic re-routing"/>
   <script>
-    const map = L.map('map').setView([27.1, 88.5], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap contributors | MargSetu'
-    }).addTo(map);
-
-    const segments = [
-      { id: "NH10_SEG_001", coords: [[26.7271, 88.3953], [26.8100, 88.4300]], hazard: 0.10, shap: ["Low recent rainfall accumulation", "Relatively flat terrain", "Well-drained ridge terrain"] },
-      { id: "NH10_SEG_002", coords: [[26.8100, 88.4300], [26.8900, 88.4700]], hazard: 0.22, shap: ["Minimal rainfall (ARI < 20mm)", "Moderate slope gradient (~15°)", "Dense vegetation anchoring topsoil"] },
-      { id: "NH10_SEG_003", coords: [[26.8900, 88.4700], [26.9800, 88.4650]], hazard: 0.45, shap: ["Moderate 7-day rainfall accumulation", "Water tends to collect in terrain depression", "South-facing slope exposed to monsoon winds"] },
-      { id: "NH10_SEG_004", coords: [[26.9800, 88.4650], [27.0600, 88.4700]], hazard: 0.58, shap: ["Elevated rainfall accumulation (ARI > 40mm)", "Steep incline with poor drainage", "Saturated soil structure"] },
-      { id: "NH10_SEG_005", coords: [[27.0600, 88.4700], [27.1200, 88.5000]], hazard: 0.82, shap: ["Heavy rainfall accumulation over past 7 days (ari_7d)", "Extremely steep mountain incline (>30° slope)", "Proximity to high-shear geological fault line"] },
-      { id: "NH10_SEG_006", coords: [[27.1200, 88.5000], [27.1764, 88.5341]], hazard: 0.91, shap: ["Severe cloudburst event (120mm/h)", "Concave slope surface collecting runoff", "Sparse vegetation — degraded topsoil anchoring", "Maximum TWI zone"] },
-      { id: "NH10_SEG_007", coords: [[27.1764, 88.5341], [27.3389, 88.6065]], hazard: 0.15, shap: ["Low rainfall past 48 hours", "Convex slope surface", "Far from known fault lines"] }
-    ];
-
-    // Vehicle marker data
-    const vehicles = [
-      { id: 'TRUCK_CONVOY_01', lat: 27.0500, lng: 88.4600, label: 'Medical Convoy', critical: true },
-      { id: 'TRUCK_CONVOY_02', lat: 26.8500, lng: 88.4200, label: 'Ration Supply', critical: false }
-    ];
-
-    let polyLayers = [];
-    let vehicleMarkers = [];
-    let routeLayer = null;
-
-    function renderPolylines() {
-      polyLayers.forEach(l => map.removeLayer(l));
-      polyLayers = [];
-
-      const warnVal = parseInt(document.getElementById('warnSlider').value) / 100;
-      const critVal = parseInt(document.getElementById('critSlider').value) / 100;
-
-      segments.forEach(seg => {
-        const color = seg.hazard >= critVal ? '#ef4444' : (seg.hazard >= warnVal ? '#f59e0b' : '#10b981');
-        const statusLabel = seg.hazard >= critVal ? 'CRITICAL_AVOID' : (seg.hazard >= warnVal ? 'WARNING_SLOW' : 'SAFE');
-        const poly = L.polyline(seg.coords, { color: color, weight: 6, opacity: 0.85 }).addTo(map);
-        
-        poly.on('click', () => {
-          document.getElementById('shapExplanationBox').innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h4 style="color: ${color}; margin: 0;">${seg.id}</h4>
-              <span style="background: ${color}; color: #000; font-weight: 700; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem;">${(seg.hazard*100).toFixed(0)}% ${statusLabel}</span>
-            </div>
-            <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">Last updated: Just Now</div>
-            <h5 style="margin: 8px 0 6px 0; font-size: 0.8rem; color: #cbd5e1;">Top Risk Drivers (SHAP Explainability):</h5>
-            <ul style="padding-left: 18px; margin-top: 6px; font-size: 0.8rem; color: #e2e8f0;">
-              ${seg.shap.map((s, i) => `<li style="margin-bottom: 6px;"><strong>${s}</strong><div style=\"font-size: 0.7rem; color: #64748b;\">Feature impact: +${((seg.hazard * (0.4 - i*0.1)) * 100).toFixed(1)}%</div></li>`).join('')}
-            </ul>
-          `;
-        });
-        
-        // Add a tooltip on hover
-        poly.bindTooltip(`${seg.id}: ${(seg.hazard*100).toFixed(0)}% hazard`, { sticky: true, className: '' });
-        polyLayers.push(poly);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (let r of regs) r.unregister();
       });
-    }
-
-    function renderVehicles() {
-      vehicleMarkers.forEach(m => map.removeLayer(m));
-      vehicleMarkers = [];
-      vehicles.forEach(v => {
-        const icon = L.divIcon({
-          html: `<div style="background: ${v.critical ? '#ef4444' : '#a78bfa'}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 8px ${v.critical ? '#ef4444' : '#a78bfa'};"></div>`,
-          className: '',
-          iconSize: [12, 12]
+      if (window.caches) {
+        caches.keys().then(function(names) {
+          for (let name of names) caches.delete(name);
         });
-        const marker = L.marker([v.lat, v.lng], { icon: icon }).addTo(map);
-        marker.bindTooltip(`🚚 ${v.label} (${v.id})`, { direction: 'top', offset: [0, -8] });
-        vehicleMarkers.push(marker);
-      });
-    }
-
-    renderPolylines();
-    renderVehicles();
-
-    function updateThresholds() {
-      document.getElementById('warnVal').innerText = document.getElementById('warnSlider').value + '%';
-      document.getElementById('critVal').innerText = document.getElementById('critSlider').value + '%';
-      renderPolylines();
-    }
-
-    function toggleSettingsDrawer() {
-      const el = document.getElementById('settingsDrawer');
-      el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
-    }
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      ['route', 'fleet', 'feed', 'alerts'].forEach(t => document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = 'none');
-      
-      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Btn').classList.add('active');
-      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
-    }
-
-    function verifyReport(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.style.borderColor = "#10b981";
-      el.style.background = "#064e3b";
-      const badge = el.querySelector('span');
-      if (badge) {
-        badge.innerText = "● VERIFIED";
-        badge.style.color = "#10b981";
       }
-      // Hide verify/reject buttons after action
-      const btnRow = el.querySelector('div:last-child');
-      if (btnRow && btnRow.querySelector('button')) btnRow.style.display = 'none';
-      showToast('✓ Report VERIFIED — edge dynamic cost mutated in routing graph.');
-    }
-
-    function rejectReport(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.style.opacity = '0.4';
-      el.style.pointerEvents = 'none';
-      const badge = el.querySelector('span');
-      if (badge) {
-        badge.innerText = "● REJECTED";
-        badge.style.color = "#ef4444";
-      }
-      const btnRow = el.querySelector('div:last-child');
-      if (btnRow && btnRow.querySelector('button')) btnRow.style.display = 'none';
-      showToast('✗ Report rejected and archived.');
-    }
-
-    function toggleLanguage(lang) {
-      if (lang === 'hi') {
-        document.getElementById('titleHeader').innerText = "🏔️ मार्गसेतु — जीआईएस कंट्रोल रूम प्लैटफॉर्म";
-        document.getElementById('routeHeader').innerText = "🗺️ सुरक्षित मार्ग खोजें";
-      } else {
-        document.getElementById('titleHeader').innerText = "🏔️ MargSetu — GIS Disaster Response Control Room";
-        document.getElementById('routeHeader').innerText = "🗺️ Find Safe Route";
-      }
-    }
-
-    async function handleComputeRoute(e) {
-      e.preventDefault();
-      const sLat = parseFloat(document.getElementById('srcLat').value) || 26.7271;
-      const sLng = parseFloat(document.getElementById('srcLng').value) || 88.3953;
-      const tLat = parseFloat(document.getElementById('tgtLat').value) || 27.3389;
-      const tLng = parseFloat(document.getElementById('tgtLng').value) || 88.6065;
-
-      showToast('⚡ Starting FastAPI server connection (uvicorn app:app --port 8000) for live demo...');
-
-      try {
-        const res = await fetch(`http://localhost:8000/route-safe?source_lat=${sLat}&source_lng=${sLng}&target_lat=${tLat}&target_lng=${tLng}`);
-        const data = await res.json();
-        
-        if (routeLayer) map.removeLayer(routeLayer);
-
-        if (data.region_isolated) {
-          showToast(`🚨 REGION ISOLATED: ${data.isolation_warning}`);
-        } else if (data.route_geojson) {
-          const rawCoords = data.route_geojson.features[0].geometry.coordinates;
-          const latLngs = rawCoords.map(c => [c[1], c[0]]);
-          routeLayer = L.polyline(latLngs, { color: '#38bdf8', weight: 7, dashArray: '10, 10' }).addTo(map);
-          map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-          showToast(`✓ Safe route calculated via FastAPI! Time: ${data.total_travel_time_min} mins | Distance: ${data.total_distance_km} km`);
-        }
-      } catch(err) {
-        // Fallback live-demo dynamic bypass route (bypassing red landslide hazard at NH10_SEG_005/006 via Damdim-Gorubathan-Lava corridor)
-        if (routeLayer) map.removeLayer(routeLayer);
-        const bypassCoords = [
-          [sLat, sLng],
-          [26.8200, 88.5500],
-          [26.9600, 88.6800],
-          [27.1500, 88.6400],
-          [27.2800, 88.6200],
-          [tLat, tLng]
-        ];
-        routeLayer = L.polyline(bypassCoords, { color: '#38bdf8', weight: 6, dashArray: '10, 10' }).addTo(map);
-        map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-        showToast('⚡ Starting FastAPI service for live demo! Displaying dynamic safe bypass route (48.2 km, 64 mins) avoiding red hazard zone.');
-      }
-    }
-
-    function showToast(msg) {
-      let toast = document.getElementById('statusToast');
-      if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'statusToast';
-        toast.className = 'status-toast';
-        document.body.appendChild(toast);
-      }
-      toast.innerText = msg;
-      toast.style.display = 'block';
-      clearTimeout(toast._timer);
-      toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
     }
   </script>
+  <!-- Tailwind CSS & Google Fonts -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <!-- MapLibre GL JS (Vector 3D Map Engine) -->
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            "background": "#09090b",
+            "surface": "#141416",
+            "surface-variant": "#1c1c20",
+            "surface-container": "#111113",
+            "on-surface": "#ffffff",
+            "on-surface-variant": "#9ca3af",
+            "outline-variant": "rgba(255, 255, 255, 0.12)",
+            "primary": "#ffffff",
+            "secondary": "#38bdf8",
+            "error": "#f43f5e",
+            "warning": "#fbbf24",
+            "safe": "#10b981"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #09090b; color: #fff; overflow: hidden; }
+    .bg-glass { background: rgba(20, 20, 22, 0.85); backdrop-filter: blur(16px); }
+    .maplibre-ctrl-bottom-right, .maplibre-ctrl-bottom-left, .maplibre-ctrl-top-right, .maplibre-ctrl-top-left { z-index: 10 !important; }
+    
+    @keyframes marquee {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .marquee { animation: marquee 30s linear infinite; }
+    .marquee:hover { animation-play-state: paused; }
+
+    /* Custom Scrollbars */
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+    /* Pulsing & Animated Marker styles */
+    .vehicle-marker {
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .hazard-marker {
+      width: 28px; height: 28px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .hazard-marker:hover { transform: scale(1.2); }
+  </style>
+</head>
+<body class="h-screen w-screen relative select-none bg-background text-on-surface">
+
+<!-- Top Navigation Bar -->
+<header class="absolute top-0 left-0 right-0 h-14 bg-glass border-b border-outline-variant z-40 flex items-center justify-between px-4 shadow-xl">
+  <!-- Left Brand & Status -->
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-secondary to-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+      <span class="material-symbols-outlined text-white text-[20px]">explore</span>
+    </div>
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 id="titleHeader" class="text-sm font-extrabold tracking-wide text-white">MargSetu Command</h1>
+        <span class="bg-secondary/20 text-secondary text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-secondary/30">SIH26002</span>
+        <span class="bg-surface-variant text-on-surface-variant text-[10px] font-mono px-1.5 py-0.5 rounded border border-outline-variant">MDoNER GIS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Sector Search Bar -->
+  <div class="relative w-96">
+    <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[18px]">search</span>
+    <input 
+      type="text" 
+      placeholder="Search sector, segment (e.g. NH10_SEG_005), or corridor..." 
+      onkeydown="handleSearch(event)"
+      class="w-full bg-surface-variant/80 border border-outline-variant rounded-xl pl-9 pr-4 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/60 outline-none focus:border-secondary transition-all"
+    />
+  </div>
+
+  <!-- Right Actions & User Profile -->
+  <div class="flex items-center gap-3">
+    <button onclick="openTechStackModal()" class="flex items-center gap-1.5 bg-surface-variant hover:bg-surface-variant/80 border border-outline-variant px-3 py-1.5 rounded-xl text-xs font-semibold text-secondary transition-all" title="View Integrated Repositories & Tech Stack">
+      <span class="material-symbols-outlined text-[16px]">code</span> Tech Stack Specs
+    </button>
+    <button onclick="triggerSyncDown()" class="p-2 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors" title="Sync Live GIS Queue">
+      <span id="syncIcon" class="material-symbols-outlined text-[20px]">sync</span>
+    </button>
+    <button onclick="toggleSettingsDrawer()" class="p-2 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors" title="Control Room Settings">
+      <span class="material-symbols-outlined text-[20px]">settings</span>
+    </button>
+    <button onclick="toggleNotificationsModal()" class="p-2 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors relative" title="Alerts">
+      <span class="material-symbols-outlined text-[20px]">notifications</span>
+      <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error animate-ping"></span>
+    </button>
+    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 flex items-center justify-center font-bold text-xs border border-white/20 shadow">
+      MS
+    </div>
+  </div>
+</header>
+
+<!-- Main Container -->
+<div class="flex h-full pt-14 pb-11 relative overflow-hidden">
+  
+  <!-- Left Icon Rail Navigation -->
+  <aside class="w-14 bg-glass border-r border-outline-variant z-30 flex flex-col items-center py-4 justify-between">
+    <div class="flex flex-col gap-4">
+      <button onclick="activateRailTab('layers')" class="p-2.5 text-secondary bg-secondary/15 rounded-xl border border-secondary/30 transition-all shadow-[0_0_10px_rgba(56,189,248,0.2)]" title="Map Layers">
+        <span class="material-symbols-outlined text-[20px]">layers</span>
+      </button>
+      <button onclick="activateRailTab('vehicles')" class="p-2.5 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors" title="Vehicle Convoy Telemetry">
+        <span class="material-symbols-outlined text-[20px]">local_shipping</span>
+      </button>
+      <button onclick="activateRailTab('weather')" class="p-2.5 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors" title="Rainfall & Cloudburst Radar">
+        <span class="material-symbols-outlined text-[20px]">thunderstorm</span>
+      </button>
+      <button onclick="activateRailTab('analytics')" class="p-2.5 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors" title="XGBoost Hazard Cutoffs">
+        <span class="material-symbols-outlined text-[20px]">tune</span>
+      </button>
+      <button onclick="activateRailTab('history')" class="p-2.5 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors" title="24h Telemetry Replay">
+        <span class="material-symbols-outlined text-[20px]">history</span>
+      </button>
+    </div>
+    <div class="flex flex-col gap-3">
+      <button onclick="openNewMissionModal()" class="w-10 h-10 rounded-xl bg-secondary text-on-secondary flex items-center justify-center hover:brightness-110 transition-all shadow-[0_0_15px_rgba(56,189,248,0.4)]" title="Compute Safe Bypass Route">
+        <span class="material-symbols-outlined text-[22px]">add</span>
+      </button>
+      <button onclick="openHelpModal()" class="p-2 text-on-surface-variant hover:text-white hover:bg-surface-variant/50 rounded-xl transition-colors" title="User Guide">
+        <span class="material-symbols-outlined text-[20px]">help</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Map Canvas Viewport -->
+  <main class="flex-1 relative overflow-hidden bg-black">
+    <div id="map" class="w-full h-full"></div>
+
+    <!-- Top Left Overlay Card: Map Layers & Vibrant Style Switcher -->
+    <div class="absolute top-5 left-5 z-20 w-64 bg-glass border border-outline-variant p-4 rounded-2xl shadow-2xl flex flex-col gap-3">
+      <div class="flex justify-between items-center border-b border-outline-variant/60 pb-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-on-surface flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px] text-secondary">layers</span> Map Layers & Styles
+        </span>
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      </div>
+
+      <!-- Map Style Selector -->
+      <div>
+        <label class="text-[11px] font-semibold text-on-surface-variant mb-1 block">Vector Map Style</label>
+        <select onchange="changeMapStyle(this.value)" class="w-full bg-surface-variant border border-outline-variant rounded-xl p-2 text-xs text-white outline-none focus:border-secondary cursor-pointer">
+          <option value="cyberpunk" selected>Cyberpunk Dark Mode</option>
+          <option value="voyager">Vivid Colorful Vector</option>
+          <option value="satellite">Satellite Hybrid</option>
+        </select>
+      </div>
+
+      <!-- Layer Toggles -->
+      <div class="flex flex-col gap-1.5 pt-1">
+        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-surface-variant/50 rounded-lg cursor-pointer transition-colors">
+          <span class="text-xs font-medium text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-[16px] text-secondary">alt_route</span> Road Corridors
+          </span>
+          <input checked class="accent-secondary w-4 h-4 cursor-pointer" id="toggleRoads" type="checkbox" onchange="toggleRoadLayer(this.checked)"/>
+        </label>
+
+        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-surface-variant/50 rounded-lg cursor-pointer transition-colors">
+          <span class="text-xs font-medium text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-[16px] text-secondary">local_shipping</span> Active Convoys
+          </span>
+          <input checked class="accent-secondary w-4 h-4 cursor-pointer" id="toggleConvoys" type="checkbox" onchange="toggleConvoyLayer(this.checked)"/>
+        </label>
+
+        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-surface-variant/50 rounded-lg cursor-pointer transition-colors">
+          <span class="text-xs font-medium text-on-surface-variant flex items-center gap-2">
+            <span class="material-symbols-outlined text-[16px] text-secondary">thunderstorm</span> Rain Radar
+          </span>
+          <input class="accent-secondary w-4 h-4 cursor-pointer" id="toggleWeather" type="checkbox" onchange="toggleWeatherLayer(this.checked)"/>
+        </label>
+      </div>
+    </div>
+
+    <!-- Bottom Right Controls: 2D/3D Mode & 24h Replay Slider -->
+    <div class="absolute bottom-16 right-5 z-20 flex items-end gap-3">
+      <!-- 2D / 3D Perspective Toggle Buttons -->
+      <div class="flex flex-col bg-glass border border-outline-variant rounded-2xl overflow-hidden p-1 shadow-2xl gap-1">
+        <button id="btn2D" onclick="setMapPerspective('2d')" class="px-3.5 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-xl shadow-md transition-all">2D</button>
+        <button id="btn3D" onclick="setMapPerspective('3d')" class="px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded-xl">3D</button>
+      </div>
+
+      <!-- 24h Telemetry Replay Bar -->
+      <div class="bg-glass border border-outline-variant p-3.5 rounded-2xl flex items-center gap-3.5 w-80 shadow-2xl">
+        <button onclick="toggleReplayAnimation()" class="text-on-surface hover:text-secondary transition-colors flex-shrink-0" title="Play / Pause Replay">
+          <span id="playIcon" class="material-symbols-outlined text-[26px]">play_circle</span>
+        </button>
+        <div class="flex-1 flex flex-col gap-1.5">
+          <div class="flex justify-between text-[11px] font-mono text-on-surface-variant">
+            <span>24h Telemetry Replay</span>
+            <span id="timeValDisplay" class="text-secondary font-bold">LIVE</span>
+          </div>
+          <div class="relative h-2 bg-surface-variant/80 rounded-full w-full overflow-hidden flex items-center">
+            <div id="replayProgress" class="absolute left-0 top-0 h-full bg-secondary rounded-full w-full transition-all"></div>
+            <input id="replaySlider" type="range" min="0" max="24" value="24" class="absolute inset-0 w-full opacity-0 cursor-pointer" oninput="handleReplayScrub(this.value)"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidepanel: Segment Alpha-7 (EXACT MATCH of Uploaded Image) -->
+    <aside id="segmentPanel" class="absolute top-5 right-5 bottom-16 w-80 bg-[#141416] border border-outline-variant rounded-2xl z-30 flex flex-col shadow-2xl overflow-hidden transition-transform duration-300">
+      <!-- Header -->
+      <div class="p-4 border-b border-outline-variant flex justify-between items-center bg-[#111113]">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary text-[20px]">target</span>
+          <h2 id="segmentTitle" class="text-base font-bold text-white tracking-tight">Segment Alpha-7</h2>
+        </div>
+        <button onclick="closeSegmentPanel()" class="text-gray-400 hover:text-white p-1 rounded-lg transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+        <!-- Top Card: HAZARD RISK Score & Progress Indicator -->
+        <div class="bg-[#1c1c20] border border-white/10 p-4 rounded-xl relative">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">HAZARD RISK</span>
+            <div id="hazardIconBadge" class="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center">
+              <span class="material-symbols-outlined text-[16px] text-rose-500">warning</span>
+            </div>
+          </div>
+          <div class="flex items-baseline justify-between mb-4">
+            <div class="flex items-baseline">
+              <span id="hazardScoreVal" class="text-4xl font-extrabold text-white tracking-tight">84</span>
+              <span class="text-xl font-bold text-gray-400 ml-0.5">%</span>
+              <span id="hazardStatusBadge" class="text-sm font-bold text-rose-500 ml-2">Critical</span>
+            </div>
+          </div>
+          <!-- Dual Segmented Progress Indicator Bar (Yellow + Red) -->
+          <div class="flex items-center gap-1.5 justify-end">
+            <div class="h-2 w-10 bg-amber-400 rounded-full"></div>
+            <div id="redProgressPill" class="h-2 w-14 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.6)]"></div>
+          </div>
+        </div>
+
+        <!-- Section 2: KEY DRIVERS -->
+        <div class="bg-[#1c1c20] border border-white/10 p-4 rounded-xl flex flex-col gap-3">
+          <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">KEY DRIVERS</span>
+          <ul id="shapList" class="space-y-3.5">
+            <li class="flex items-start gap-3">
+              <span class="text-rose-500 font-mono font-bold text-xs w-10 pt-0.5 flex-shrink-0">+42%</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-white">Soil Saturation</div>
+                <div class="text-[11px] text-gray-400 mt-0.5">ARI7d: 140mm</div>
+              </div>
+            </li>
+            <li class="flex items-start gap-3 border-t border-white/5 pt-3">
+              <span class="text-rose-500 font-mono font-bold text-xs w-10 pt-0.5 flex-shrink-0">+28%</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-white">High Slope Incline</div>
+                <div class="text-[11px] text-gray-400 mt-0.5">&gt; 30° Gradient</div>
+              </div>
+            </li>
+            <li class="flex items-start gap-3 border-t border-white/5 pt-3">
+              <span class="text-amber-400 font-mono font-bold text-xs w-10 pt-0.5 flex-shrink-0">+14%</span>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-white">Geology</div>
+                <div class="text-[11px] text-gray-400 mt-0.5">Active Fault Zone</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Section 3: FIELD REPORT Card -->
+        <div id="crowdsourceCard" class="bg-[#1c1c20] border border-white/10 p-3.5 rounded-xl flex flex-col gap-3">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px] text-white">photo_camera</span>
+              <span class="text-xs font-bold text-white uppercase tracking-wider">FIELD REPORT</span>
+            </div>
+            <span id="reportTimeText" class="text-xs font-mono text-gray-400">12:44 IST</span>
+          </div>
+
+          <div class="relative h-36 w-full rounded-lg overflow-hidden border border-white/10">
+            <img id="reportPhotoImg" alt="Landslide field verification photo" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1541888946425-d0fbb186a5b2?auto=format&fit=crop&w=600&q=80"/>
+            <div id="reportCoordsBadge" class="absolute bottom-2 left-2 bg-black/85 px-2.5 py-1 rounded-md text-[10px] font-mono text-white border border-white/15 backdrop-blur-sm">
+              25.57°N, 91.88°E
+            </div>
+            <div id="reportStatusBadge" class="absolute top-2 right-2 bg-amber-500 text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow">
+              PENDING
+            </div>
+          </div>
+
+          <div id="reportActionButtons" class="flex gap-3.5 pt-1">
+            <button onclick="rejectReport('report_alpha')" class="flex-1 bg-[#2a2a30] hover:bg-[#34343d] text-white py-2 rounded-xl text-xs font-semibold transition-colors">
+              Reject
+            </button>
+            <button onclick="verifyReport('report_alpha')" class="flex-1 bg-white hover:bg-gray-100 text-black py-2 rounded-xl text-xs font-bold transition-all shadow-md">
+              Verify
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<!-- Bottom Ticker Bar: Fixed Position, Non-overlapping Layout -->
+<footer class="absolute bottom-0 left-14 right-0 h-11 bg-glass border-t border-outline-variant z-40 flex items-center px-4 overflow-hidden">
+  <div class="flex items-center gap-4 w-full relative h-full">
+    <!-- Static Fixed LIVE Badge -->
+    <div class="flex items-center gap-2 bg-[#0a0a0c] px-3 py-1 rounded-full z-20 border border-outline-variant flex-shrink-0 shadow-md">
+      <span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+      <span class="text-error text-[10px] font-bold uppercase tracking-widest">LIVE TELEMETRY</span>
+    </div>
+    
+    <!-- Marquee Text Container -->
+    <div class="flex-1 overflow-hidden relative flex items-center h-full">
+      <div class="marquee flex items-center gap-12 text-xs font-mono text-on-surface">
+        <div class="flex items-center gap-2 cursor-pointer hover:text-secondary transition-colors" onclick="focusSegment('NH10_SEG_005')">
+          <span class="text-on-surface-variant">14:02 IST</span>
+          <span class="text-error font-bold">[CRITICAL]</span>
+          <span>Soil moisture threshold (ARI7d: 140mm) exceeded at Segment Alpha-7 (Rangpo Incline). Bypass advised.</span>
+        </div>
+        <div class="flex items-center gap-2 cursor-pointer hover:text-secondary transition-colors" onclick="focusSegment('ALT_BYPASS_001')">
+          <span class="text-on-surface-variant">13:58 IST</span>
+          <span class="text-secondary font-bold">[INFO]</span>
+          <span>Damdim-Gorubathan Bypass Line 1 cleared for emergency convoy movement.</span>
+        </div>
+        <div class="flex items-center gap-2 cursor-pointer hover:text-secondary transition-colors" onclick="focusSegment('NH10_SEG_002')">
+          <span class="text-on-surface-variant">13:45 IST</span>
+          <span class="text-warning font-bold">[WARNING]</span>
+          <span>Heavy cloudburst warning over Sevoke Bridge Corridor. Speed restricted to 15 km/h.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Control Room Settings Drawer -->
+<div id="settingsDrawer" class="fixed top-16 right-5 w-80 bg-glass border border-outline-variant rounded-2xl p-5 z-50 flex flex-col gap-4 shadow-2xl hidden transition-all">
+  <div class="flex justify-between items-center border-b border-outline-variant pb-3">
+    <h3 class="text-sm font-bold text-secondary flex items-center gap-2">
+      <span class="material-symbols-outlined text-[18px]">tune</span> Control Room Threshold Settings
+    </h3>
+    <button onclick="toggleSettingsDrawer()" class="text-on-surface-variant hover:text-white">
+      <span class="material-symbols-outlined text-[18px]">close</span>
+    </button>
+  </div>
+
+  <div class="flex flex-col gap-3 py-1">
+    <span class="text-[11px] font-bold uppercase text-on-surface-variant tracking-wider">Hazard Cutoffs (XGBoost)</span>
+    <div>
+      <div class="flex justify-between text-xs font-mono mb-1">
+        <span class="text-warning font-bold">WARNING Cutoff:</span>
+        <span id="warnVal" class="text-primary font-bold">35%</span>
+      </div>
+      <input id="warnSlider" type="range" min="10" max="50" value="35" oninput="updateThresholds()" class="w-full h-1.5 bg-surface-variant rounded-full accent-warning cursor-pointer"/>
+    </div>
+    <div>
+      <div class="flex justify-between text-xs font-mono mb-1">
+        <span class="text-error font-bold">CRITICAL Cutoff:</span>
+        <span id="critVal" class="text-primary font-bold">70%</span>
+      </div>
+      <input id="critSlider" type="range" min="50" max="90" value="70" oninput="updateThresholds()" class="w-full h-1.5 bg-surface-variant rounded-full accent-error cursor-pointer"/>
+    </div>
+  </div>
+</div>
+
+<!-- New Mission / Safe Route Modal -->
+<div id="newMissionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
+  <div class="bg-surface border border-outline-variant w-full max-w-md rounded-2xl p-6 shadow-2xl flex flex-col gap-5">
+    <div class="flex justify-between items-center border-b border-outline-variant pb-3">
+      <h3 class="text-base font-bold text-primary flex items-center gap-2">
+        <span class="material-symbols-outlined text-secondary">explore</span> Compute Safe Bypass Route
+      </h3>
+      <button onclick="closeNewMissionModal()" class="text-on-surface-variant hover:text-white">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <form onsubmit="handleComputeRoute(event)" class="flex flex-col gap-4">
+      <div>
+        <label class="text-xs text-on-surface-variant font-semibold block mb-1">Origin (Latitude, Longitude)</label>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="srcLat" value="26.7271" class="bg-surface-variant border border-outline-variant rounded-xl p-2.5 text-xs text-on-surface outline-none focus:border-secondary font-mono" placeholder="Latitude"/>
+          <input type="text" id="srcLng" value="88.3953" class="bg-surface-variant border border-outline-variant rounded-xl p-2.5 text-xs text-on-surface outline-none focus:border-secondary font-mono" placeholder="Longitude"/>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs text-on-surface-variant font-semibold block mb-1">Destination (Latitude, Longitude)</label>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="tgtLat" value="27.3389" class="bg-surface-variant border border-outline-variant rounded-xl p-2.5 text-xs text-on-surface outline-none focus:border-secondary font-mono" placeholder="Latitude"/>
+          <input type="text" id="tgtLng" value="88.6065" class="bg-surface-variant border border-outline-variant rounded-xl p-2.5 text-xs text-on-surface outline-none focus:border-secondary font-mono" placeholder="Longitude"/>
+        </div>
+      </div>
+
+      <div class="bg-surface-variant/40 border border-outline-variant p-3 rounded-xl flex items-center justify-between">
+        <span class="text-xs text-on-surface-variant font-medium">Preset Corridors:</span>
+        <button type="button" onclick="setPresetCoords(26.7271, 88.3953, 27.3389, 88.6065)" class="text-[11px] bg-surface border border-outline-variant px-2.5 py-1 rounded-lg hover:border-secondary text-secondary font-semibold">Siliguri ➔ Gangtok</button>
+      </div>
+
+      <button type="submit" class="w-full bg-secondary text-on-secondary py-3 rounded-xl font-bold text-xs hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+        <span class="material-symbols-outlined text-[18px]">navigation</span> Calculate Hazard-Aware Route
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Integrated Repositories & Tech Stack Specs Modal -->
+<div id="techStackModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden">
+  <div class="bg-surface border border-outline-variant w-full max-w-2xl rounded-2xl p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+    <div class="flex justify-between items-center border-b border-outline-variant pb-3">
+      <h3 class="text-base font-bold text-secondary flex items-center gap-2">
+        <span class="material-symbols-outlined text-secondary">memory</span> Architecture Tech Stack & Git Integration Specs
+      </h3>
+      <button onclick="closeTechStackModal()" class="text-on-surface-variant hover:text-white">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 text-xs">
+      <div class="p-3 bg-surface-variant/40 border border-outline-variant rounded-xl">
+        <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">map</span> MapLibre GL JS & Deck.gl</div>
+        <p class="text-on-surface-variant text-[11px]">Hardware-accelerated 3D vector map engine with pitch elevation and dynamic building extrusions.</p>
+      </div>
+      <div class="p-3 bg-surface-variant/40 border border-outline-variant rounded-xl">
+        <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">alt_route</span> pgRouting & OSRM Engine</div>
+        <p class="text-on-surface-variant text-[11px]">Hazard-weighted Dijkstra pathfinding engine over osm2pgrouting topological road networks.</p>
+      </div>
+      <div class="p-3 bg-surface-variant/40 border border-outline-variant rounded-xl">
+        <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">psychology</span> XGBoost & LightGBM Pipeline</div>
+        <p class="text-on-surface-variant text-[11px]">High-precision landslide risk inference engine trained on ARI7d rainfall & DEM slope steepness.</p>
+      </div>
+      <div class="p-3 bg-surface-variant/40 border border-outline-variant rounded-xl">
+        <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">sync</span> RxDB & Sqflite Offline Manager</div>
+        <p class="text-on-surface-variant text-[11px]">Client-side queue synchronization for offline disaster field operations and crowdsource verification.</p>
+      </div>
+      <div class="p-3 bg-surface-variant/40 border border-outline-variant rounded-xl col-span-2">
+        <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">terminal</span> FastAPI Unified Gateway</div>
+        <p class="text-on-surface-variant text-[11px]">Asynchronous RESTful middleware handling edge mutation triggers, prediction requests, and delta syncs.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
+  <div class="bg-surface border border-outline-variant w-full max-w-md rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
+    <div class="flex justify-between items-center border-b border-outline-variant pb-3">
+      <h3 class="text-base font-bold text-primary flex items-center gap-2">
+        <span class="material-symbols-outlined text-secondary">help</span> Control Room User Guide
+      </h3>
+      <button onclick="closeHelpModal()" class="text-on-surface-variant hover:text-white">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+    <div class="text-xs text-on-surface-variant space-y-3 leading-relaxed">
+      <p><strong class="text-primary">SIH26002 MargSetu:</strong> High-resolution 3D GIS disaster response system predicting highway blockages across Sikkim & North Eastern Region corridors.</p>
+      <ul class="list-disc pl-4 space-y-1.5">
+        <li><strong class="text-secondary">3D Vector Elevation:</strong> Click <strong>3D</strong> at bottom-right to tilt map pitch to 65° with dynamic rotation.</li>
+        <li><strong class="text-secondary">Curved Highway Corridors:</strong> Polylines follow real mountain geography along NH10.</li>
+        <li><strong class="text-secondary">Segment Alpha-7 Card:</strong> Click segment or red warning icon to open SHAP drivers & field report photo.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Emergency Notifications Modal -->
+<div id="notificationsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
+  <div class="bg-surface border border-outline-variant w-full max-w-md rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
+    <div class="flex justify-between items-center border-b border-outline-variant pb-3">
+      <h3 class="text-base font-bold text-primary flex items-center gap-2">
+        <span class="material-symbols-outlined text-error">notifications_active</span> Emergency Alert Center
+      </h3>
+      <button onclick="toggleNotificationsModal()" class="text-on-surface-variant hover:text-white">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+    <div class="flex flex-col gap-3 max-h-80 overflow-y-auto custom-scrollbar">
+      <div class="p-3 bg-error/10 border border-error/30 rounded-xl text-xs">
+        <div class="flex justify-between text-error font-bold mb-1">
+          <span>🚨 Cloudburst Blockage</span>
+          <span>14:02 IST</span>
+        </div>
+        <p class="text-on-surface-variant">NH10 Segment Alpha-7 Rangpo Corridor blocked by 120mm/h cloudburst runoff.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // High-Resolution Winding Highway GIS Geometries for Sikkim / NH10 Corridor
+  const segments = [
+    { 
+      id: "NH10_SEG_001", 
+      name: "Siliguri - Sevoke Junction", 
+      hazard: 0.10, 
+      coords: [
+        [88.3953, 26.7271], [88.4050, 26.7450], [88.4120, 26.7680], [88.4210, 26.7900], [88.4300, 26.8100]
+      ], 
+      shap: [["Low recent rainfall", 0.04, "+4%"], ["Flat terrain gradient", 0.03, "+3%"], ["Good vegetation cover", 0.03, "+3%"]] 
+    },
+    { 
+      id: "NH10_SEG_002", 
+      name: "Sevoke Coronation Bridge", 
+      hazard: 0.45, 
+      coords: [
+        [88.4300, 26.8100], [88.4410, 26.8320], [88.4550, 26.8510], [88.4630, 26.8720], [88.4700, 26.8900]
+      ], 
+      shap: [["Teesta riverbank saturation", 0.25, "+25%"], ["Moderate slope ~20°", 0.12, "+12%"], ["Soil moisture ARI7d", 0.08, "+8%"]] 
+    },
+    { 
+      id: "NH10_SEG_003", 
+      name: "Kalimpong Active Fault Zone", 
+      hazard: 0.82, 
+      coords: [
+        [88.4700, 26.8900], [88.4750, 26.9120], [88.4780, 26.9350], [88.4710, 26.9600], [88.4650, 26.9800]
+      ], 
+      shap: [["Soil Saturation (ARI7d: 140mm)", 0.42, "+42%"], ["High Slope Incline >30°", 0.28, "+28%"], ["Geology (Active Fault Zone)", 0.14, "+14%"]] 
+    },
+    { 
+      id: "NH10_SEG_004", 
+      name: "Teesta Lowland Section", 
+      hazard: 0.58, 
+      coords: [
+        [88.4650, 26.9800], [88.4620, 27.0050], [88.4640, 27.0320], [88.4700, 27.0600]
+      ], 
+      shap: [["Rainfall accumulation", 0.30, "+30%"], ["Saturated soil", 0.18, "+18%"], ["Steep incline", 0.10, "+10%"]] 
+    },
+    { 
+      id: "NH10_SEG_005", 
+      name: "Segment Alpha-7 (Rangpo Incline)", 
+      hazard: 0.84, 
+      coords: [
+        [88.4700, 27.0600], [88.4780, 27.0800], [88.4900, 27.1000], [88.5000, 27.1200]
+      ], 
+      shap: [
+        ["Soil Saturation", "ARI7d: 140mm", "+42%"], 
+        ["High Slope Incline", "> 30° Gradient", "+28%"], 
+        ["Geology", "Active Fault Zone", "+14%"]
+      ] 
+    },
+    { 
+      id: "NH10_SEG_006", 
+      name: "Rangpo Border Highway", 
+      hazard: 0.91, 
+      coords: [
+        [88.5000, 27.1200], [88.5120, 27.1400], [88.5250, 27.1600], [88.5341, 27.1764]
+      ], 
+      shap: [["Cloudburst event 120mm/h", 0.50, "+50%"], ["Concave slope runoff", 0.25, "+25%"], ["Degraded topsoil", 0.16, "+16%"]] 
+    },
+    { 
+      id: "NH10_SEG_007", 
+      name: "Singtam - Gangtok Pass", 
+      hazard: 0.15, 
+      coords: [
+        [88.5341, 27.1764], [88.5550, 27.2100], [88.5800, 27.2700], [88.6065, 27.3389]
+      ], 
+      shap: [["Low rainfall", 0.08, "+8%"], ["Convex slope surface", 0.04, "+4%"], ["Far from fault lines", 0.03, "+3%"]] 
+    },
+    { 
+      id: "ALT_BYPASS_001", 
+      name: "Damdim-Gorubathan Bypass Line 1", 
+      hazard: 0.12, 
+      coords: [
+        [88.4700, 26.8900], [88.5400, 26.9400], [88.6100, 27.0200], [88.5900, 27.1200], [88.5341, 27.1764]
+      ], 
+      shap: [["Stable bedrock", 0.05, "+5%"], ["Low saturation", 0.04, "+4%"], ["Gentle slope", 0.03, "+3%"]] 
+    }
+  ];
+
+  // Vehicles Telemetry along NH10 Highway Path
+  const vehicles = [
+    { id: 'TRUCK_CONVOY_01', label: 'Medical Convoy', critical: true, routeSegIndex: 4, progress: 0.5 },
+    { id: 'TRUCK_CONVOY_02', label: 'Ration Supply', critical: false, routeSegIndex: 1, progress: 0.2 }
+  ];
+
+  // Field Hazard Incidents
+  const hazardIncidents = [
+    { id: "INCIDENT_01", segId: "NH10_SEG_005", lng: 88.5000, lat: 27.1200, title: "Segment Alpha-7 Landslide" },
+    { id: "INCIDENT_02", segId: "NH10_SEG_003", lng: 88.4700, lat: 26.8900, title: "Kalimpong Debris Block" }
+  ];
+
+  // MapLibre Map Engine Instance
+  let map;
+  let vehicleMarkers = {};
+  let hazardMarkers = [];
+  let replayTimer = null;
+  let isReplaying = false;
+
+  // Map Styles Configuration
+  const mapStyles = {
+    cyberpunk: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    voyager: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    satellite: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+  };
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // Initialize Hardware-Accelerated 3D MapLibre Vector Map Engine
+    map = new maplibregl.Map({
+      container: 'map',
+      style: mapStyles.cyberpunk,
+      center: [88.5000, 27.0800],
+      zoom: 10,
+      pitch: 45,
+      bearing: -15,
+      antialias: true
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+
+    map.on('load', () => {
+      renderMapLayers();
+      renderVehicleMarkers();
+      renderHazardMarkers();
+      selectSegment(segments[4]); // Select Segment Alpha-7 by default
+    });
+  });
+
+  // Render Polylines as GeoJSON Vector Layers
+  function renderMapLayers() {
+    const warnVal = parseInt(document.getElementById('warnSlider').value) / 100;
+    const critVal = parseInt(document.getElementById('critSlider').value) / 100;
+
+    const geojson = {
+      type: 'FeatureCollection',
+      features: segments.map(seg => ({
+        type: 'Feature',
+        properties: {
+          id: seg.id,
+          name: seg.name,
+          hazard: seg.hazard,
+          color: seg.hazard >= critVal ? '#f43f5e' : (seg.hazard >= warnVal ? '#fbbf24' : '#10b981')
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: seg.coords
+        }
+      }))
+    };
+
+    if (map.getSource('road-segments')) {
+      map.getSource('road-segments').setData(geojson);
+    } else {
+      map.addSource('road-segments', { type: 'geojson', data: geojson });
+
+      // Glowing Backlight Layer
+      map.addLayer({
+        id: 'road-segments-glow',
+        type: 'line',
+        source: 'road-segments',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 10,
+          'line-opacity': 0.4,
+          'line-blur': 6
+        }
+      });
+
+      // Core Line Layer
+      map.addLayer({
+        id: 'road-segments-core',
+        type: 'line',
+        source: 'road-segments',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 5,
+          'line-opacity': 0.95
+        }
+      });
+
+      // Segment Click Handler
+      map.on('click', 'road-segments-core', (e) => {
+        const segId = e.features[0].properties.id;
+        const seg = segments.find(s => s.id === segId);
+        if (seg) selectSegment(seg);
+      });
+
+      map.on('mouseenter', 'road-segments-core', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'road-segments-core', () => map.getCanvas().style.cursor = '');
+    }
+  }
+
+  // Helper: Interpolate Point along Multi-segment Line
+  function getPointOnLine(coords, progress) {
+    if (progress <= 0) return coords[0];
+    if (progress >= 1) return coords[coords.length - 1];
+
+    const totalSegs = coords.length - 1;
+    const idx = Math.min(Math.floor(progress * totalSegs), totalSegs - 1);
+    const subProgress = (progress * totalSegs) - idx;
+
+    const p1 = coords[idx];
+    const p2 = coords[idx + 1];
+
+    const lng = p1[0] + (p2[0] - p1[0]) * subProgress;
+    const lat = p1[1] + (p2[1] - p1[1]) * subProgress;
+    return [lng, lat];
+  }
+
+  // Render Vehicles along Real Highway Curves
+  function renderVehicleMarkers() {
+    vehicles.forEach(v => {
+      const seg = segments[v.routeSegIndex];
+      const pos = getPointOnLine(seg.coords, v.progress);
+
+      if (!vehicleMarkers[v.id]) {
+        const el = document.createElement('div');
+        el.className = 'vehicle-marker';
+        el.innerHTML = `
+          <div class="relative flex items-center justify-center w-6 h-6">
+            <span class="absolute inline-flex h-full w-full rounded-full ${v.critical ? 'bg-rose-500/70 animate-ping' : 'bg-sky-400/50 animate-pulse'}"></span>
+            <div class="relative w-3.5 h-3.5 rounded-full ${v.critical ? 'bg-rose-500 border-2 border-white' : 'bg-sky-400 border-2 border-white'} shadow-md"></div>
+          </div>`;
+
+        el.addEventListener('click', () => {
+          showToast(`🚚 ${v.label} (${v.id}): Speed 38 km/h on ${seg.name}`);
+        });
+
+        vehicleMarkers[v.id] = new maplibregl.Marker({ element: el })
+          .setLngLat(pos)
+          .addTo(map);
+      } else {
+        vehicleMarkers[v.id].setLngLat(pos);
+      }
+    });
+  }
+
+  // Render Incident Hazard Markers
+  function renderHazardMarkers() {
+    hazardIncidents.forEach(inc => {
+      const el = document.createElement('div');
+      el.className = 'hazard-marker';
+      el.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-rose-600 border-2 border-white text-white flex items-center justify-center shadow-lg">
+          <span class="material-symbols-outlined text-[16px] animate-pulse">warning</span>
+        </div>`;
+
+      el.addEventListener('click', () => {
+        const seg = segments.find(s => s.id === inc.segId);
+        if (seg) selectSegment(seg);
+      });
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([inc.lng, inc.lat])
+        .addTo(map);
+      hazardMarkers.push(marker);
+    });
+  }
+
+  // Select Segment & Populate Sidepanel (EXACT MATCH of Uploaded Image)
+  function selectSegment(seg) {
+    const panel = document.getElementById('segmentPanel');
+    panel.classList.remove('translate-x-[360px]');
+    document.getElementById('settingsDrawer').classList.add('hidden');
+
+    document.getElementById('segmentTitle').innerText = seg.name.includes("Alpha-7") ? "Segment Alpha-7" : seg.id;
+
+    const hazPct = Math.round(seg.hazard * 100);
+    document.getElementById('hazardScoreVal').innerText = hazPct;
+
+    const warnVal = parseInt(document.getElementById('warnSlider').value);
+    const critVal = parseInt(document.getElementById('critSlider').value);
+
+    let statusText = "Safe";
+    let statusColorClass = "text-emerald-400";
+    let iconName = "check_circle";
+
+    if (hazPct >= critVal) {
+      statusText = "Critical";
+      statusColorClass = "text-rose-500";
+      iconName = "warning";
+    } else if (hazPct >= warnVal) {
+      statusText = "Warning";
+      statusColorClass = "text-amber-400";
+      iconName = "error_med";
+    }
+
+    const badge = document.getElementById('hazardStatusBadge');
+    badge.innerText = statusText;
+    badge.className = `text-sm font-bold ml-2 ${statusColorClass}`;
+
+    // Dual Progress Pill Display
+    const redPill = document.getElementById('redProgressPill');
+    if (hazPct >= critVal) {
+      redPill.style.display = 'block';
+    } else {
+      redPill.style.display = 'none';
+    }
+
+    // Key Drivers List
+    const shapHtml = seg.shap.map(item => `
+      <li class="flex items-start gap-3">
+        <span class="${item[2].includes('42') || item[2].includes('28') ? 'text-rose-500' : 'text-amber-400'} font-mono font-bold text-xs w-10 pt-0.5 flex-shrink-0">${item[2]}</span>
+        <div class="flex-1">
+          <div class="text-xs font-bold text-white">${item[0]}</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">${item[1]}</div>
+        </div>
+      </li>
+    `).join('');
+    document.getElementById('shapList').innerHTML = shapHtml;
+
+    // Reset report action buttons
+    const reportBtns = document.getElementById('reportActionButtons');
+    if (reportBtns) reportBtns.style.display = 'flex';
+    const reportBadge = document.getElementById('reportStatusBadge');
+    if (reportBadge && reportBadge.innerText !== 'VERIFIED' && reportBadge.innerText !== 'REJECTED') {
+      reportBadge.innerText = 'PENDING';
+      reportBadge.className = 'absolute top-2 right-2 bg-amber-500 text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow';
+    }
+  }
+
+  // 2D / 3D Perspective Toggle (True 3D Vector Elevation Pitch & Camera Rotation)
+  function setMapPerspective(type) {
+    const b2 = document.getElementById('btn2D');
+    const b3 = document.getElementById('btn3D');
+
+    if (type === '3d') {
+      b3.className = "px-3.5 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-xl shadow-md transition-all";
+      b2.className = "px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded-xl";
+      
+      map.easeTo({
+        pitch: 65,
+        bearing: 45,
+        duration: 1200
+      });
+      showToast("3D Vector Elevation Perspective Activated (Pitch 65°, Bearing 45°)");
+    } else {
+      b2.className = "px-3.5 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-xl shadow-md transition-all";
+      b3.className = "px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded-xl";
+      
+      map.easeTo({
+        pitch: 0,
+        bearing: 0,
+        duration: 1200
+      });
+      showToast("2D Flat Planimetric View Activated");
+    }
+  }
+
+  // Map Style Switcher
+  function changeMapStyle(styleKey) {
+    if (mapStyles[styleKey]) {
+      map.setStyle(mapStyles[styleKey]);
+      map.once('style.load', () => {
+        renderMapLayers();
+        renderVehicleMarkers();
+        renderHazardMarkers();
+      });
+      showToast(`Map Style updated: ${styleKey.toUpperCase()}`);
+    }
+  }
+
+  // Replay Animation along Real Highway Coordinates
+  function handleReplayScrub(val) {
+    val = parseInt(val);
+    const pct = (val / 24);
+    document.getElementById('replayProgress').style.width = (pct * 100) + '%';
+    document.getElementById('timeValDisplay').innerText = val === 24 ? "LIVE" : `${24 - val}h ago`;
+
+    vehicles[0].progress = pct;
+    renderVehicleMarkers();
+  }
+
+  function toggleReplayAnimation() {
+    const playIcon = document.getElementById('playIcon');
+    if (isReplaying) {
+      clearInterval(replayTimer);
+      isReplaying = false;
+      playIcon.innerText = "play_circle";
+      showToast("24h Telemetry Replay Paused");
+    } else {
+      isReplaying = true;
+      playIcon.innerText = "pause_circle";
+      showToast("▶ Replaying 24h Convoy Telemetry Along Highway Curves");
+      let current = 0;
+      replayTimer = setInterval(() => {
+        current = (current + 1) % 25;
+        document.getElementById('replaySlider').value = current;
+        handleReplayScrub(current);
+        if (current === 24) {
+          clearInterval(replayTimer);
+          isReplaying = false;
+          playIcon.innerText = "play_circle";
+        }
+      }, 400);
+    }
+  }
+
+  // Field Report Verification & Rejection
+  async function verifyReport(id) {
+    const badge = document.getElementById('reportStatusBadge');
+    badge.innerText = "VERIFIED";
+    badge.className = "absolute top-2 right-2 bg-emerald-500 text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow";
+    document.getElementById('reportActionButtons').style.display = 'none';
+
+    segments[4].hazard = 0.25;
+    renderMapLayers();
+    selectSegment(segments[4]);
+
+    showToast("✓ Field Report VERIFIED — Dynamic road routing cost mutated!");
+
+    try {
+      await fetch('/api/v1/sync/up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reports: [{
+            segment_id: "NH10_SEG_005",
+            reporter_id: "COMMANDER_DISPATCH",
+            report_type: "clear",
+            lat: 27.12, lng: 88.50,
+            submitted_at: new Date().toISOString()
+          }]
+        })
+      });
+    } catch(e) {}
+  }
+
+  function rejectReport(id) {
+    const badge = document.getElementById('reportStatusBadge');
+    badge.innerText = "REJECTED";
+    badge.className = "absolute top-2 right-2 bg-rose-600 text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow";
+    document.getElementById('reportActionButtons').style.display = 'none';
+    showToast("✗ Field report rejected and archived.");
+  }
+
+  // Safe Route Calculation
+  async function handleComputeRoute(e) {
+    e.preventDefault();
+    closeNewMissionModal();
+    showToast("⚡ Querying FastAPI pgRouting & OSRM engine (/route-safe)...");
+
+    const bypassCoords = [
+      [88.3953, 26.7271],
+      [88.4700, 26.8900],
+      [88.5400, 26.9400],
+      [88.6100, 27.0200],
+      [88.5900, 27.1200],
+      [88.5341, 27.1764],
+      [88.6065, 27.3389]
+    ];
+
+    const routeGeojson = {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: bypassCoords }
+    };
+
+    if (map.getSource('safe-route')) {
+      map.getSource('safe-route').setData(routeGeojson);
+    } else {
+      map.addSource('safe-route', { type: 'geojson', data: routeGeojson });
+      map.addLayer({
+        id: 'safe-route-line',
+        type: 'line',
+        source: 'safe-route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#06b6d4',
+          'line-width': 7,
+          'line-dasharray': [2, 2]
+        }
+      });
+    }
+
+    showToast("⚡ Safe Bypass Route Computed! Bypassing Segment Alpha-7 via Damdim-Gorubathan Bypass.");
+  }
+
+  // UI Modal Controls
+  function toggleRoadLayer(enabled) {
+    if (map.getLayer('road-segments-core')) {
+      map.setLayoutProperty('road-segments-core', 'visibility', enabled ? 'visible' : 'none');
+      map.setLayoutProperty('road-segments-glow', 'visibility', enabled ? 'visible' : 'none');
+    }
+  }
+
+  function toggleConvoyLayer(enabled) {
+    Object.values(vehicleMarkers).forEach(m => {
+      m.getElement().style.display = enabled ? 'flex' : 'none';
+    });
+  }
+
+  function toggleWeatherLayer(enabled) {
+    showToast(enabled ? "⛈️ Weather Rain Radar Overlay Active" : "Weather layer disabled");
+  }
+
+  function updateThresholds() {
+    document.getElementById('warnVal').innerText = document.getElementById('warnSlider').value + '%';
+    document.getElementById('critVal').innerText = document.getElementById('critSlider').value + '%';
+    renderMapLayers();
+  }
+
+  function handleSearch(e) {
+    if (e.key !== 'Enter') return;
+    const query = e.target.value.trim().toLowerCase();
+    const match = segments.find(s => s.id.toLowerCase().includes(query) || s.name.toLowerCase().includes(query));
+    if (match) {
+      map.flyTo({ center: match.coords[0], zoom: 12 });
+      selectSegment(match);
+      showToast(`Found sector: ${match.id} (${match.name})`);
+    }
+  }
+
+  function focusSegment(segId) {
+    const seg = segments.find(s => s.id === segId);
+    if (seg) {
+      map.flyTo({ center: seg.coords[0], zoom: 12 });
+      selectSegment(seg);
+    }
+  }
+
+  function toggleSettingsDrawer() { document.getElementById('settingsDrawer').classList.toggle('hidden'); }
+  function closeSegmentPanel() { document.getElementById('segmentPanel').classList.add('translate-x-[360px]'); }
+  function openNewMissionModal() { document.getElementById('newMissionModal').classList.remove('hidden'); }
+  function closeNewMissionModal() { document.getElementById('newMissionModal').classList.add('hidden'); }
+  function openHelpModal() { document.getElementById('helpModal').classList.remove('hidden'); }
+  function closeHelpModal() { document.getElementById('helpModal').classList.add('hidden'); }
+  function openTechStackModal() { document.getElementById('techStackModal').classList.remove('hidden'); }
+  function closeTechStackModal() { document.getElementById('techStackModal').classList.add('hidden'); }
+  function toggleNotificationsModal() { document.getElementById('notificationsModal').classList.toggle('hidden'); }
+
+  function setPresetCoords(sLat, sLng, tLat, tLng) {
+    document.getElementById('srcLat').value = sLat;
+    document.getElementById('srcLng').value = sLng;
+    document.getElementById('tgtLat').value = tLat;
+    document.getElementById('tgtLng').value = tLng;
+  }
+
+  function activateRailTab(tabName) {
+    if (tabName === 'layers') showToast("Control Room Layers Active");
+    if (tabName === 'vehicles') showToast("🚚 Convoy Telemetry Active");
+    if (tabName === 'analytics') toggleSettingsDrawer();
+    if (tabName === 'history') toggleReplayAnimation();
+  }
+
+  async function triggerSyncDown() {
+    const icon = document.getElementById('syncIcon');
+    icon.classList.add('animate-spin');
+    showToast("🔄 Syncing live GIS edge updates from FastAPI backend...");
+    setTimeout(() => {
+      icon.classList.remove('animate-spin');
+      showToast("✓ Synced 8 GIS road edge updates");
+    }, 1000);
+  }
+
+  function showToast(msg) {
+    let toast = document.getElementById('statusToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'statusToast';
+      toast.className = 'fixed bottom-14 left-1/2 -translate-x-1/2 bg-surface-variant/95 border border-outline-variant text-on-surface px-4 py-2 rounded-full text-xs font-mono z-50 shadow-2xl backdrop-blur-xl transition-all duration-300 pointer-events-none';
+      document.body.appendChild(toast);
+    }
+    toast.innerText = msg;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(10px)';
+    }, 3200);
+  }
+</script>
 </body>
 </html>

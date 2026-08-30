@@ -5,7 +5,7 @@
  * Provides offline caching for static assets, map tiles, and offline hazard queue background sync.
  */
 
-const CACHE_NAME = 'margsetu-pwa-cache-v1';
+const CACHE_NAME = 'margsetu-pwa-cache-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
