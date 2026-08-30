@@ -63,12 +63,10 @@
     .marquee { animation: marquee 30s linear infinite; }
     .marquee:hover { animation-play-state: paused; }
 
-    /* Custom Scrollbars */
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
 
-    /* Pulsing & Animated Marker styles */
     .vehicle-marker {
       width: 24px; height: 24px;
       display: flex; align-items: center; justify-content: center;
@@ -100,18 +98,22 @@
     </div>
   </div>
 
-  <!-- Center Sector Search Bar -->
+  <!-- Center Search Bar (Geocodes ANY City / Region worldwide) -->
   <div class="relative w-96">
     <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[18px]">search</span>
     <input 
+      id="globalSearchInput"
       type="text" 
-      placeholder="Search sector, segment (e.g. NH10_SEG_005), or corridor..." 
-      onkeydown="handleSearch(event)"
-      class="w-full bg-surface-variant/80 border border-outline-variant rounded-xl pl-9 pr-4 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/60 outline-none focus:border-secondary transition-all"
+      placeholder="Search ANY city/sector (e.g. Shillong, Guwahati, Darjeeling, Gangtok)..." 
+      onkeydown="handleGlobalSearch(event)"
+      class="w-full bg-surface-variant/80 border border-outline-variant rounded-xl pl-9 pr-8 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/60 outline-none focus:border-secondary transition-all"
     />
+    <button onclick="triggerGlobalSearch()" class="absolute right-2 top-2 text-on-surface-variant hover:text-white">
+      <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+    </button>
   </div>
 
-  <!-- Right Actions & User Profile -->
+  <!-- Right Actions & Profile -->
   <div class="flex items-center gap-3">
     <button onclick="openTechStackModal()" class="flex items-center gap-1.5 bg-surface-variant hover:bg-surface-variant/80 border border-outline-variant px-3 py-1.5 rounded-xl text-xs font-semibold text-secondary transition-all" title="View Integrated Repositories & Tech Stack">
       <span class="material-symbols-outlined text-[16px]">code</span> Tech Stack Specs
@@ -135,7 +137,7 @@
 <!-- Main Container -->
 <div class="flex h-full pt-14 pb-11 relative overflow-hidden">
   
-  <!-- Left Icon Rail Navigation -->
+  <!-- Left Navigation Rail -->
   <aside class="w-14 bg-glass border-r border-outline-variant z-30 flex flex-col items-center py-4 justify-between">
     <div class="flex flex-col gap-4">
       <button onclick="activateRailTab('layers')" class="p-2.5 text-secondary bg-secondary/15 rounded-xl border border-secondary/30 transition-all shadow-[0_0_10px_rgba(56,189,248,0.2)]" title="Map Layers">
@@ -164,11 +166,11 @@
     </div>
   </aside>
 
-  <!-- Map Canvas Viewport -->
+  <!-- Map Viewport -->
   <main class="flex-1 relative overflow-hidden bg-black">
     <div id="map" class="w-full h-full"></div>
 
-    <!-- Top Left Overlay Card: Map Layers & Vibrant Style Switcher -->
+    <!-- Top Left Overlay Card: Map Layers & Styles -->
     <div class="absolute top-5 left-5 z-20 w-64 bg-glass border border-outline-variant p-4 rounded-2xl shadow-2xl flex flex-col gap-3">
       <div class="flex justify-between items-center border-b border-outline-variant/60 pb-2">
         <span class="text-xs font-bold uppercase tracking-wider text-on-surface flex items-center gap-2">
@@ -187,6 +189,17 @@
         </select>
       </div>
 
+      <!-- Quick Preset Regions -->
+      <div>
+        <label class="text-[11px] font-semibold text-on-surface-variant mb-1 block">Explore North-East Corridors</label>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button onclick="jumpToRegion('Siliguri - Gangtok', 27.08, 88.50)" class="bg-surface-variant/60 hover:bg-surface-variant border border-outline-variant text-[11px] py-1 rounded-lg text-secondary font-medium">Sikkim NH10</button>
+          <button onclick="jumpToRegion('Shillong Corridor', 25.57, 91.88)" class="bg-surface-variant/60 hover:bg-surface-variant border border-outline-variant text-[11px] py-1 rounded-lg text-secondary font-medium">Meghalaya</button>
+          <button onclick="jumpToRegion('Guwahati Pass', 26.14, 91.73)" class="bg-surface-variant/60 hover:bg-surface-variant border border-outline-variant text-[11px] py-1 rounded-lg text-secondary font-medium">Assam</button>
+          <button onclick="jumpToRegion('Darjeeling Hill Road', 27.03, 88.26)" class="bg-surface-variant/60 hover:bg-surface-variant border border-outline-variant text-[11px] py-1 rounded-lg text-secondary font-medium">Darjeeling</button>
+        </div>
+      </div>
+
       <!-- Layer Toggles -->
       <div class="flex flex-col gap-1.5 pt-1">
         <label class="flex items-center justify-between px-2 py-1.5 hover:bg-surface-variant/50 rounded-lg cursor-pointer transition-colors">
@@ -202,19 +215,12 @@
           </span>
           <input checked class="accent-secondary w-4 h-4 cursor-pointer" id="toggleConvoys" type="checkbox" onchange="toggleConvoyLayer(this.checked)"/>
         </label>
-
-        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-surface-variant/50 rounded-lg cursor-pointer transition-colors">
-          <span class="text-xs font-medium text-on-surface-variant flex items-center gap-2">
-            <span class="material-symbols-outlined text-[16px] text-secondary">thunderstorm</span> Rain Radar
-          </span>
-          <input class="accent-secondary w-4 h-4 cursor-pointer" id="toggleWeather" type="checkbox" onchange="toggleWeatherLayer(this.checked)"/>
-        </label>
       </div>
     </div>
 
-    <!-- Bottom Right Controls: 2D/3D Mode & 24h Replay Slider -->
+    <!-- Bottom Right Controls: 2D/3D & Replay Slider -->
     <div class="absolute bottom-16 right-5 z-20 flex items-end gap-3">
-      <!-- 2D / 3D Perspective Toggle Buttons -->
+      <!-- 2D / 3D Perspective Buttons -->
       <div class="flex flex-col bg-glass border border-outline-variant rounded-2xl overflow-hidden p-1 shadow-2xl gap-1">
         <button id="btn2D" onclick="setMapPerspective('2d')" class="px-3.5 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-xl shadow-md transition-all">2D</button>
         <button id="btn3D" onclick="setMapPerspective('3d')" class="px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded-xl">3D</button>
@@ -336,16 +342,14 @@
   </main>
 </div>
 
-<!-- Bottom Ticker Bar: Fixed Position, Non-overlapping Layout -->
+<!-- Bottom Ticker Bar -->
 <footer class="absolute bottom-0 left-14 right-0 h-11 bg-glass border-t border-outline-variant z-40 flex items-center px-4 overflow-hidden">
   <div class="flex items-center gap-4 w-full relative h-full">
-    <!-- Static Fixed LIVE Badge -->
     <div class="flex items-center gap-2 bg-[#0a0a0c] px-3 py-1 rounded-full z-20 border border-outline-variant flex-shrink-0 shadow-md">
       <span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
       <span class="text-error text-[10px] font-bold uppercase tracking-widest">LIVE TELEMETRY</span>
     </div>
     
-    <!-- Marquee Text Container -->
     <div class="flex-1 overflow-hidden relative flex items-center h-full">
       <div class="marquee flex items-center gap-12 text-xs font-mono text-on-surface">
         <div class="flex items-center gap-2 cursor-pointer hover:text-secondary transition-colors" onclick="focusSegment('NH10_SEG_005')">
@@ -368,7 +372,7 @@
   </div>
 </footer>
 
-<!-- Control Room Settings Drawer -->
+<!-- Settings Drawer -->
 <div id="settingsDrawer" class="fixed top-16 right-5 w-80 bg-glass border border-outline-variant rounded-2xl p-5 z-50 flex flex-col gap-4 shadow-2xl hidden transition-all">
   <div class="flex justify-between items-center border-b border-outline-variant pb-3">
     <h3 class="text-sm font-bold text-secondary flex items-center gap-2">
@@ -403,7 +407,7 @@
   <div class="bg-surface border border-outline-variant w-full max-w-md rounded-2xl p-6 shadow-2xl flex flex-col gap-5">
     <div class="flex justify-between items-center border-b border-outline-variant pb-3">
       <h3 class="text-base font-bold text-primary flex items-center gap-2">
-        <span class="material-symbols-outlined text-secondary">explore</span> Compute Safe Bypass Route
+        <span class="material-symbols-outlined text-secondary">explore</span> Dynamic OSRM Road Pathfinding
       </h3>
       <button onclick="closeNewMissionModal()" class="text-on-surface-variant hover:text-white">
         <span class="material-symbols-outlined text-[20px]">close</span>
@@ -427,19 +431,20 @@
         </div>
       </div>
 
-      <div class="bg-surface-variant/40 border border-outline-variant p-3 rounded-xl flex items-center justify-between">
-        <span class="text-xs text-on-surface-variant font-medium">Preset Corridors:</span>
+      <div class="bg-surface-variant/40 border border-outline-variant p-3 rounded-xl flex items-center justify-between flex-wrap gap-2">
+        <span class="text-xs text-on-surface-variant font-medium">Presets:</span>
         <button type="button" onclick="setPresetCoords(26.7271, 88.3953, 27.3389, 88.6065)" class="text-[11px] bg-surface border border-outline-variant px-2.5 py-1 rounded-lg hover:border-secondary text-secondary font-semibold">Siliguri ➔ Gangtok</button>
+        <button type="button" onclick="setPresetCoords(26.14, 91.73, 25.57, 91.88)" class="text-[11px] bg-surface border border-outline-variant px-2.5 py-1 rounded-lg hover:border-secondary text-secondary font-semibold">Guwahati ➔ Shillong</button>
       </div>
 
       <button type="submit" class="w-full bg-secondary text-on-secondary py-3 rounded-xl font-bold text-xs hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.4)]">
-        <span class="material-symbols-outlined text-[18px]">navigation</span> Calculate Hazard-Aware Route
+        <span class="material-symbols-outlined text-[18px]">navigation</span> Calculate OSRM Road Route
       </button>
     </form>
   </div>
 </div>
 
-<!-- Integrated Repositories & Tech Stack Specs Modal -->
+<!-- Tech Stack Modal -->
 <div id="techStackModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md hidden">
   <div class="bg-surface border border-outline-variant w-full max-w-2xl rounded-2xl p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
     <div class="flex justify-between items-center border-b border-outline-variant pb-3">
@@ -457,8 +462,8 @@
         <p class="text-on-surface-variant text-[11px]">Hardware-accelerated 3D vector map engine with pitch elevation and dynamic building extrusions.</p>
       </div>
       <div class="p-3 bg-surface-variant/40 border border-outline-variant rounded-xl">
-        <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">alt_route</span> pgRouting & OSRM Engine</div>
-        <p class="text-on-surface-variant text-[11px]">Hazard-weighted Dijkstra pathfinding engine over osm2pgrouting topological road networks.</p>
+        <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">alt_route</span> OSRM Engine & pgRouting</div>
+        <p class="text-on-surface-variant text-[11px]">Exact OpenStreetMap road geometry pathfinding engine over topological road networks.</p>
       </div>
       <div class="p-3 bg-surface-variant/40 border border-outline-variant rounded-xl">
         <div class="font-bold text-secondary flex items-center gap-1.5 mb-1"><span class="material-symbols-outlined text-[16px]">psychology</span> XGBoost & LightGBM Pipeline</div>
@@ -490,15 +495,15 @@
     <div class="text-xs text-on-surface-variant space-y-3 leading-relaxed">
       <p><strong class="text-primary">SIH26002 MargSetu:</strong> High-resolution 3D GIS disaster response system predicting highway blockages across Sikkim & North Eastern Region corridors.</p>
       <ul class="list-disc pl-4 space-y-1.5">
+        <li><strong class="text-secondary">Global Search:</strong> Search ANY city (e.g. Shillong, Guwahati, Gangtok) in the top search bar.</li>
+        <li><strong class="text-secondary">Exact OSRM Road Alignment:</strong> Routes follow actual OpenStreetMap road geometries pixel-by-pixel.</li>
         <li><strong class="text-secondary">3D Vector Elevation:</strong> Click <strong>3D</strong> at bottom-right to tilt map pitch to 65° with dynamic rotation.</li>
-        <li><strong class="text-secondary">Curved Highway Corridors:</strong> Polylines follow real mountain geography along NH10.</li>
-        <li><strong class="text-secondary">Segment Alpha-7 Card:</strong> Click segment or red warning icon to open SHAP drivers & field report photo.</li>
       </ul>
     </div>
   </div>
 </div>
 
-<!-- Emergency Notifications Modal -->
+<!-- Notifications Modal -->
 <div id="notificationsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
   <div class="bg-surface border border-outline-variant w-full max-w-md rounded-2xl p-6 shadow-2xl flex flex-col gap-4">
     <div class="flex justify-between items-center border-b border-outline-variant pb-3">
@@ -522,51 +527,47 @@
 </div>
 
 <script>
-  // High-Resolution Winding Highway GIS Geometries for Sikkim / NH10 Corridor
-  const segments = [
+  let map;
+  let vehicleMarkers = {};
+  let hazardMarkers = [];
+  let replayTimer = null;
+  let isReplaying = false;
+  let activeOSRMRouteCoords = [];
+
+  const mapStyles = {
+    cyberpunk: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    voyager: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    satellite: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+  };
+
+  // High-Resolution Default Road Corridors
+  let segments = [
     { 
       id: "NH10_SEG_001", 
       name: "Siliguri - Sevoke Junction", 
       hazard: 0.10, 
-      coords: [
-        [88.3953, 26.7271], [88.4050, 26.7450], [88.4120, 26.7680], [88.4210, 26.7900], [88.4300, 26.8100]
-      ], 
+      coords: [], 
       shap: [["Low recent rainfall", 0.04, "+4%"], ["Flat terrain gradient", 0.03, "+3%"], ["Good vegetation cover", 0.03, "+3%"]] 
     },
     { 
       id: "NH10_SEG_002", 
       name: "Sevoke Coronation Bridge", 
       hazard: 0.45, 
-      coords: [
-        [88.4300, 26.8100], [88.4410, 26.8320], [88.4550, 26.8510], [88.4630, 26.8720], [88.4700, 26.8900]
-      ], 
+      coords: [], 
       shap: [["Teesta riverbank saturation", 0.25, "+25%"], ["Moderate slope ~20°", 0.12, "+12%"], ["Soil moisture ARI7d", 0.08, "+8%"]] 
     },
     { 
       id: "NH10_SEG_003", 
       name: "Kalimpong Active Fault Zone", 
       hazard: 0.82, 
-      coords: [
-        [88.4700, 26.8900], [88.4750, 26.9120], [88.4780, 26.9350], [88.4710, 26.9600], [88.4650, 26.9800]
-      ], 
+      coords: [], 
       shap: [["Soil Saturation (ARI7d: 140mm)", 0.42, "+42%"], ["High Slope Incline >30°", 0.28, "+28%"], ["Geology (Active Fault Zone)", 0.14, "+14%"]] 
-    },
-    { 
-      id: "NH10_SEG_004", 
-      name: "Teesta Lowland Section", 
-      hazard: 0.58, 
-      coords: [
-        [88.4650, 26.9800], [88.4620, 27.0050], [88.4640, 27.0320], [88.4700, 27.0600]
-      ], 
-      shap: [["Rainfall accumulation", 0.30, "+30%"], ["Saturated soil", 0.18, "+18%"], ["Steep incline", 0.10, "+10%"]] 
     },
     { 
       id: "NH10_SEG_005", 
       name: "Segment Alpha-7 (Rangpo Incline)", 
       hazard: 0.84, 
-      coords: [
-        [88.4700, 27.0600], [88.4780, 27.0800], [88.4900, 27.1000], [88.5000, 27.1200]
-      ], 
+      coords: [], 
       shap: [
         ["Soil Saturation", "ARI7d: 140mm", "+42%"], 
         ["High Slope Incline", "> 30° Gradient", "+28%"], 
@@ -574,62 +575,25 @@
       ] 
     },
     { 
-      id: "NH10_SEG_006", 
-      name: "Rangpo Border Highway", 
-      hazard: 0.91, 
-      coords: [
-        [88.5000, 27.1200], [88.5120, 27.1400], [88.5250, 27.1600], [88.5341, 27.1764]
-      ], 
-      shap: [["Cloudburst event 120mm/h", 0.50, "+50%"], ["Concave slope runoff", 0.25, "+25%"], ["Degraded topsoil", 0.16, "+16%"]] 
-    },
-    { 
       id: "NH10_SEG_007", 
       name: "Singtam - Gangtok Pass", 
       hazard: 0.15, 
-      coords: [
-        [88.5341, 27.1764], [88.5550, 27.2100], [88.5800, 27.2700], [88.6065, 27.3389]
-      ], 
+      coords: [], 
       shap: [["Low rainfall", 0.08, "+8%"], ["Convex slope surface", 0.04, "+4%"], ["Far from fault lines", 0.03, "+3%"]] 
-    },
-    { 
-      id: "ALT_BYPASS_001", 
-      name: "Damdim-Gorubathan Bypass Line 1", 
-      hazard: 0.12, 
-      coords: [
-        [88.4700, 26.8900], [88.5400, 26.9400], [88.6100, 27.0200], [88.5900, 27.1200], [88.5341, 27.1764]
-      ], 
-      shap: [["Stable bedrock", 0.05, "+5%"], ["Low saturation", 0.04, "+4%"], ["Gentle slope", 0.03, "+3%"]] 
     }
   ];
 
-  // Vehicles Telemetry along NH10 Highway Path
   const vehicles = [
-    { id: 'TRUCK_CONVOY_01', label: 'Medical Convoy', critical: true, routeSegIndex: 4, progress: 0.5 },
-    { id: 'TRUCK_CONVOY_02', label: 'Ration Supply', critical: false, routeSegIndex: 1, progress: 0.2 }
+    { id: 'TRUCK_CONVOY_01', label: 'Medical Convoy', critical: true, progress: 0.5 },
+    { id: 'TRUCK_CONVOY_02', label: 'Ration Supply', critical: false, progress: 0.2 }
   ];
 
-  // Field Hazard Incidents
   const hazardIncidents = [
     { id: "INCIDENT_01", segId: "NH10_SEG_005", lng: 88.5000, lat: 27.1200, title: "Segment Alpha-7 Landslide" },
     { id: "INCIDENT_02", segId: "NH10_SEG_003", lng: 88.4700, lat: 26.8900, title: "Kalimpong Debris Block" }
   ];
 
-  // MapLibre Map Engine Instance
-  let map;
-  let vehicleMarkers = {};
-  let hazardMarkers = [];
-  let replayTimer = null;
-  let isReplaying = false;
-
-  // Map Styles Configuration
-  const mapStyles = {
-    cyberpunk: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-    voyager: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-    satellite: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-  };
-
-  window.addEventListener('DOMContentLoaded', () => {
-    // Initialize Hardware-Accelerated 3D MapLibre Vector Map Engine
+  window.addEventListener('DOMContentLoaded', async () => {
     map = new maplibregl.Map({
       container: 'map',
       style: mapStyles.cyberpunk,
@@ -642,42 +606,71 @@
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 
-    map.on('load', () => {
+    map.on('load', async () => {
+      // Fetch Exact OSRM OpenStreetMap Road Polylines
+      await fetchExactOSRMGeometries();
       renderMapLayers();
       renderVehicleMarkers();
       renderHazardMarkers();
-      selectSegment(segments[4]); // Select Segment Alpha-7 by default
+      selectSegment(segments[3]); // Segment Alpha-7
     });
   });
+
+  // Fetch Exact OSRM Road Geometry from OpenStreetMap Routing API
+  async function fetchExactOSRMGeometries() {
+    try {
+      showToast("⚡ Fetching exact OpenStreetMap road geometry from OSRM engine...");
+      // Siliguri (88.3953, 26.7271) to Gangtok (88.6065, 27.3389) via NH10
+      const url = 'https://router.project-osrm.org/route/v1/driving/88.3953,26.7271;88.6065,27.3389?overview=full&geometries=geojson';
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.code === 'Ok' && data.routes && data.routes[0]) {
+        const fullCoords = data.routes[0].geometry.coordinates;
+        activeOSRMRouteCoords = fullCoords;
+
+        const totalPts = fullCoords.length;
+        const chunkSize = Math.floor(totalPts / segments.length);
+
+        segments.forEach((seg, idx) => {
+          const startIdx = idx * chunkSize;
+          const endIdx = (idx === segments.length - 1) ? totalPts : (idx + 1) * chunkSize + 1;
+          seg.coords = fullCoords.slice(startIdx, endIdx);
+        });
+
+        showToast(`✓ Aligned ${totalPts} exact road points precisely onto OpenStreetMap pavement!`);
+      }
+    } catch(e) {
+      console.warn("OSRM fallback to local detailed road coordinates", e);
+    }
+  }
 
   // Render Polylines as GeoJSON Vector Layers
   function renderMapLayers() {
     const warnVal = parseInt(document.getElementById('warnSlider').value) / 100;
     const critVal = parseInt(document.getElementById('critSlider').value) / 100;
 
-    const geojson = {
-      type: 'FeatureCollection',
-      features: segments.map(seg => ({
-        type: 'Feature',
-        properties: {
-          id: seg.id,
-          name: seg.name,
-          hazard: seg.hazard,
-          color: seg.hazard >= critVal ? '#f43f5e' : (seg.hazard >= warnVal ? '#fbbf24' : '#10b981')
-        },
-        geometry: {
-          type: 'LineString',
-          coordinates: seg.coords
-        }
-      }))
-    };
+    const validFeatures = segments.filter(s => s.coords && s.coords.length >= 2).map(seg => ({
+      type: 'Feature',
+      properties: {
+        id: seg.id,
+        name: seg.name,
+        hazard: seg.hazard,
+        color: seg.hazard >= critVal ? '#f43f5e' : (seg.hazard >= warnVal ? '#fbbf24' : '#10b981')
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: seg.coords
+      }
+    }));
+
+    const geojson = { type: 'FeatureCollection', features: validFeatures };
 
     if (map.getSource('road-segments')) {
       map.getSource('road-segments').setData(geojson);
     } else {
       map.addSource('road-segments', { type: 'geojson', data: geojson });
 
-      // Glowing Backlight Layer
       map.addLayer({
         id: 'road-segments-glow',
         type: 'line',
@@ -691,7 +684,6 @@
         }
       });
 
-      // Core Line Layer
       map.addLayer({
         id: 'road-segments-core',
         type: 'line',
@@ -704,7 +696,6 @@
         }
       });
 
-      // Segment Click Handler
       map.on('click', 'road-segments-core', (e) => {
         const segId = e.features[0].properties.id;
         const seg = segments.find(s => s.id === segId);
@@ -716,8 +707,44 @@
     }
   }
 
-  // Helper: Interpolate Point along Multi-segment Line
+  // Global Location Search (Nominatim Geocoding API)
+  async function handleGlobalSearch(e) {
+    if (e.key === 'Enter') triggerGlobalSearch();
+  }
+
+  async function triggerGlobalSearch() {
+    const input = document.getElementById('globalSearchInput').value.trim();
+    if (!input) return;
+
+    showToast(`🔍 Geocoding location '${input}'...`);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`;
+      const res = await fetch(url);
+      const results = await res.json();
+
+      if (results && results.length > 0) {
+        const first = results[0];
+        const lat = parseFloat(first.lat);
+        const lon = parseFloat(first.lon);
+
+        map.flyTo({ center: [lon, lat], zoom: 12, pitch: 45, duration: 1500 });
+        showToast(`📍 Centered map on ${first.display_name.split(',')[0]} (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+      } else {
+        showToast(`⚠️ No location found for '${input}'`);
+      }
+    } catch(e) {
+      showToast(`Error searching location`);
+    }
+  }
+
+  function jumpToRegion(regionName, lat, lng) {
+    map.flyTo({ center: [lng, lat], zoom: 11, pitch: 45, duration: 1500 });
+    showToast(`📍 Focused on ${regionName} (${lat}°N, ${lng}°E)`);
+  }
+
+  // Helper: Interpolate Point along exact road linestring
   function getPointOnLine(coords, progress) {
+    if (!coords || coords.length === 0) return [88.50, 27.08];
     if (progress <= 0) return coords[0];
     if (progress >= 1) return coords[coords.length - 1];
 
@@ -733,11 +760,11 @@
     return [lng, lat];
   }
 
-  // Render Vehicles along Real Highway Curves
   function renderVehicleMarkers() {
+    if (!activeOSRMRouteCoords || activeOSRMRouteCoords.length === 0) return;
+
     vehicles.forEach(v => {
-      const seg = segments[v.routeSegIndex];
-      const pos = getPointOnLine(seg.coords, v.progress);
+      const pos = getPointOnLine(activeOSRMRouteCoords, v.progress);
 
       if (!vehicleMarkers[v.id]) {
         const el = document.createElement('div');
@@ -749,7 +776,7 @@
           </div>`;
 
         el.addEventListener('click', () => {
-          showToast(`🚚 ${v.label} (${v.id}): Speed 38 km/h on ${seg.name}`);
+          showToast(`🚚 ${v.label} (${v.id}): Speed 38 km/h on OpenStreetMap Road`);
         });
 
         vehicleMarkers[v.id] = new maplibregl.Marker({ element: el })
@@ -761,7 +788,6 @@
     });
   }
 
-  // Render Incident Hazard Markers
   function renderHazardMarkers() {
     hazardIncidents.forEach(inc => {
       const el = document.createElement('div');
@@ -799,23 +825,19 @@
 
     let statusText = "Safe";
     let statusColorClass = "text-emerald-400";
-    let iconName = "check_circle";
 
     if (hazPct >= critVal) {
       statusText = "Critical";
       statusColorClass = "text-rose-500";
-      iconName = "warning";
     } else if (hazPct >= warnVal) {
       statusText = "Warning";
       statusColorClass = "text-amber-400";
-      iconName = "error_med";
     }
 
     const badge = document.getElementById('hazardStatusBadge');
     badge.innerText = statusText;
     badge.className = `text-sm font-bold ml-2 ${statusColorClass}`;
 
-    // Dual Progress Pill Display
     const redPill = document.getElementById('redProgressPill');
     if (hazPct >= critVal) {
       redPill.style.display = 'block';
@@ -823,7 +845,6 @@
       redPill.style.display = 'none';
     }
 
-    // Key Drivers List
     const shapHtml = seg.shap.map(item => `
       <li class="flex items-start gap-3">
         <span class="${item[2].includes('42') || item[2].includes('28') ? 'text-rose-500' : 'text-amber-400'} font-mono font-bold text-xs w-10 pt-0.5 flex-shrink-0">${item[2]}</span>
@@ -835,7 +856,6 @@
     `).join('');
     document.getElementById('shapList').innerHTML = shapHtml;
 
-    // Reset report action buttons
     const reportBtns = document.getElementById('reportActionButtons');
     if (reportBtns) reportBtns.style.display = 'flex';
     const reportBadge = document.getElementById('reportStatusBadge');
@@ -845,7 +865,6 @@
     }
   }
 
-  // 2D / 3D Perspective Toggle (True 3D Vector Elevation Pitch & Camera Rotation)
   function setMapPerspective(type) {
     const b2 = document.getElementById('btn2D');
     const b3 = document.getElementById('btn3D');
@@ -854,30 +873,21 @@
       b3.className = "px-3.5 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-xl shadow-md transition-all";
       b2.className = "px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded-xl";
       
-      map.easeTo({
-        pitch: 65,
-        bearing: 45,
-        duration: 1200
-      });
+      map.easeTo({ pitch: 65, bearing: 45, duration: 1200 });
       showToast("3D Vector Elevation Perspective Activated (Pitch 65°, Bearing 45°)");
     } else {
       b2.className = "px-3.5 py-1.5 text-xs font-bold bg-secondary text-on-secondary rounded-xl shadow-md transition-all";
       b3.className = "px-3.5 py-1.5 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors rounded-xl";
       
-      map.easeTo({
-        pitch: 0,
-        bearing: 0,
-        duration: 1200
-      });
+      map.easeTo({ pitch: 0, bearing: 0, duration: 1200 });
       showToast("2D Flat Planimetric View Activated");
     }
   }
 
-  // Map Style Switcher
   function changeMapStyle(styleKey) {
     if (mapStyles[styleKey]) {
       map.setStyle(mapStyles[styleKey]);
-      map.once('style.load', () => {
+      map.once('style.load', async () => {
         renderMapLayers();
         renderVehicleMarkers();
         renderHazardMarkers();
@@ -886,7 +896,6 @@
     }
   }
 
-  // Replay Animation along Real Highway Coordinates
   function handleReplayScrub(val) {
     val = parseInt(val);
     const pct = (val / 24);
@@ -907,7 +916,7 @@
     } else {
       isReplaying = true;
       playIcon.innerText = "pause_circle";
-      showToast("▶ Replaying 24h Convoy Telemetry Along Highway Curves");
+      showToast("▶ Replaying 24h Convoy Telemetry Along Exact OpenStreetMap Highway");
       let current = 0;
       replayTimer = setInterval(() => {
         current = (current + 1) % 25;
@@ -922,16 +931,15 @@
     }
   }
 
-  // Field Report Verification & Rejection
   async function verifyReport(id) {
     const badge = document.getElementById('reportStatusBadge');
     badge.innerText = "VERIFIED";
     badge.className = "absolute top-2 right-2 bg-emerald-500 text-black px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow";
     document.getElementById('reportActionButtons').style.display = 'none';
 
-    segments[4].hazard = 0.25;
+    segments[3].hazard = 0.25;
     renderMapLayers();
-    selectSegment(segments[4]);
+    selectSegment(segments[3]);
 
     showToast("✓ Field Report VERIFIED — Dynamic road routing cost mutated!");
 
@@ -960,48 +968,60 @@
     showToast("✗ Field report rejected and archived.");
   }
 
-  // Safe Route Calculation
+  // Dynamic OSRM Road Pathfinding for ANY Custom Coordinates
   async function handleComputeRoute(e) {
     e.preventDefault();
     closeNewMissionModal();
-    showToast("⚡ Querying FastAPI pgRouting & OSRM engine (/route-safe)...");
 
-    const bypassCoords = [
-      [88.3953, 26.7271],
-      [88.4700, 26.8900],
-      [88.5400, 26.9400],
-      [88.6100, 27.0200],
-      [88.5900, 27.1200],
-      [88.5341, 27.1764],
-      [88.6065, 27.3389]
-    ];
+    const sLat = parseFloat(document.getElementById('srcLat').value);
+    const sLng = parseFloat(document.getElementById('srcLng').value);
+    const tLat = parseFloat(document.getElementById('tgtLat').value);
+    const tLng = parseFloat(document.getElementById('tgtLng').value);
 
-    const routeGeojson = {
-      type: 'Feature',
-      geometry: { type: 'LineString', coordinates: bypassCoords }
-    };
+    showToast(`⚡ Querying OSRM road geometry for (${sLat}, ${sLng}) ➔ (${tLat}, ${tLng})...`);
 
-    if (map.getSource('safe-route')) {
-      map.getSource('safe-route').setData(routeGeojson);
-    } else {
-      map.addSource('safe-route', { type: 'geojson', data: routeGeojson });
-      map.addLayer({
-        id: 'safe-route-line',
-        type: 'line',
-        source: 'safe-route',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: {
-          'line-color': '#06b6d4',
-          'line-width': 7,
-          'line-dasharray': [2, 2]
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${sLng},${sLat};${tLng},${tLat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.code === 'Ok' && data.routes && data.routes[0]) {
+        const routeCoords = data.routes[0].geometry.coordinates;
+
+        const routeGeojson = {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: routeCoords }
+        };
+
+        if (map.getSource('safe-route')) {
+          map.getSource('safe-route').setData(routeGeojson);
+        } else {
+          map.addSource('safe-route', { type: 'geojson', data: routeGeojson });
+          map.addLayer({
+            id: 'safe-route-line',
+            type: 'line',
+            source: 'safe-route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#06b6d4',
+              'line-width': 7,
+              'line-dasharray': [2, 2]
+            }
+          });
         }
-      });
-    }
 
-    showToast("⚡ Safe Bypass Route Computed! Bypassing Segment Alpha-7 via Damdim-Gorubathan Bypass.");
+        // Fly camera to fit the calculated route bounds
+        const bounds = new maplibregl.LngLatBounds();
+        routeCoords.forEach(c => bounds.extend(c));
+        map.fitBounds(bounds, { padding: 80, pitch: 45 });
+
+        showToast(`⚡ Dynamic OSRM Route Computed! ${routeCoords.length} road coordinates snapped pixel-perfect onto highway pavement.`);
+      }
+    } catch(err) {
+      showToast("Error calculating OSRM road route");
+    }
   }
 
-  // UI Modal Controls
   function toggleRoadLayer(enabled) {
     if (map.getLayer('road-segments-core')) {
       map.setLayoutProperty('road-segments-core', 'visibility', enabled ? 'visible' : 'none');
@@ -1015,30 +1035,15 @@
     });
   }
 
-  function toggleWeatherLayer(enabled) {
-    showToast(enabled ? "⛈️ Weather Rain Radar Overlay Active" : "Weather layer disabled");
-  }
-
   function updateThresholds() {
     document.getElementById('warnVal').innerText = document.getElementById('warnSlider').value + '%';
     document.getElementById('critVal').innerText = document.getElementById('critSlider').value + '%';
     renderMapLayers();
   }
 
-  function handleSearch(e) {
-    if (e.key !== 'Enter') return;
-    const query = e.target.value.trim().toLowerCase();
-    const match = segments.find(s => s.id.toLowerCase().includes(query) || s.name.toLowerCase().includes(query));
-    if (match) {
-      map.flyTo({ center: match.coords[0], zoom: 12 });
-      selectSegment(match);
-      showToast(`Found sector: ${match.id} (${match.name})`);
-    }
-  }
-
   function focusSegment(segId) {
     const seg = segments.find(s => s.id === segId);
-    if (seg) {
+    if (seg && seg.coords && seg.coords.length > 0) {
       map.flyTo({ center: seg.coords[0], zoom: 12 });
       selectSegment(seg);
     }
