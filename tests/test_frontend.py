@@ -29,12 +29,12 @@ class TestFrontendMemberC(unittest.TestCase):
         with open(html_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Check required Leaflet, settings drawer, crowdsource feed, alerts, and SHAP container
-        self.assertIn("leaflet.css", content)
-        self.assertIn("leaflet.js", content)
-        self.assertIn("shapExplanationBox", content)
+        # Check required MapLibre 3D, settings drawer, crowdsource feed, alerts, and SHAP container
+        self.assertIn("maplibre-gl.css", content)
+        self.assertIn("maplibre-gl.js", content)
+        self.assertIn("KEY DRIVERS", content)
         self.assertIn("settingsDrawer", content)
-        self.assertIn("crowdsourceFeedList", content)
+        self.assertIn("reportStatusBadge", content)
         self.assertIn("updateThresholds", content)
 
     def test_dashboard_components_and_context_files(self):

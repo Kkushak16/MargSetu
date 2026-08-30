@@ -81,7 +81,7 @@ class TestBackendMemberB(unittest.TestCase):
 
     def test_osrm_speed_export(self):
         csv_path = generate_osrm_traffic_file(output_csv_path="data/test_osrm_speeds.csv")
-        self.assertTrue(json.dumps(csv_path).endswith("test_osrm_speeds.csv\""))
+        self.assertTrue(str(csv_path).replace("\\", "/").endswith("test_osrm_speeds.csv"))
 
     def test_sync_up_endpoint_idempotency(self):
         report_uuid = str(uuid.uuid4())

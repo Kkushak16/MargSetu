@@ -30,7 +30,7 @@ if HAS_XGBOOST:
 else:
     import joblib
 
-MODEL_PATH = os.getenv("HAZARD_MODEL_PATH", "models/hazard_xgb.json")
+MODEL_PATH = os.getenv("HAZARD_MODEL_PATH", "/tmp/hazard_xgb.json" if os.environ.get("VERCEL") else "models/hazard_xgb.json")
 global_model: Optional[Any] = None
 
 
@@ -54,7 +54,8 @@ def load_or_train_model() -> Any:
             print(f"[API Startup] Warning loading model: {e}. Retraining...")
     
     print("[API Startup] Model artifact missing/unreadable. Auto-training baseline model...")
-    model, _ = train_xgboost_hazard_model(model_output_path=MODEL_PATH)
+    data_csv = "/tmp/landslide_training_set.csv" if os.environ.get("VERCEL") else "data/landslide_training_set.csv"
+    model, _ = train_xgboost_hazard_model(model_output_path=MODEL_PATH, data_csv_path=data_csv)
     return model
 
 
