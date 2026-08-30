@@ -80,8 +80,11 @@ if frontend_public_dir and os.path.exists(frontend_public_dir):
 from src.backend.html_content import INDEX_HTML_STR
 
 @app.get("/dashboard", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
+@app.get("/api", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
 def root_dashboard():
+
     index_path = _find_index_html()
     if index_path and os.path.exists(index_path):
         try:
