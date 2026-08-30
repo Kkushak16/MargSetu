@@ -1,0 +1,23 @@
+# Vercel Deployment Exclusions
+.git
+.gitignore
+.vercel
+mobile/
+docs/
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+*.png
+*.jpg
+*.jpeg
+*.zip
+*.tar.gz
+*.csv
+data/raw/
